@@ -15,7 +15,7 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 * @method SimpleXMLElement edit(String $page, String $content, String $summary, String $isbot, String $isminor)
 * @method Parsetree expandTemplates(String $content)
 * @method Generator|String getAllpages(String $namespace, String $limit, String $continue)
-* @method Generator|Array getAllpagesContents(String $namespace, String $limit)
+* @method Generator|Array getAllpagesContents(String $namespace, String $filter, String $limit)
 * @method Generator|Array getAllusers(String $limit, String $continue)
 * @method Generator|String getBacklinks(String $link, String $limit, String $continue)
 * @method Generator|Array getBacklinksContents(String $link, String $limit)
@@ -36,6 +36,7 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 * @method Generator|String getTransclusions(String $link, String $limit, String $continue)
 * @method Generator|Array getTransclusionsContents(String $link, String $limit)
 * @method Generator|Array getUsercontribs(String $user, String $limit, String $continue)
+* @method bool hasRight(String $right)
 * @method Generator|Array isRedirect(String $titles)
 * @method mixed login(String $username, String $password)
 * @method SimpleXMLElement logout()
@@ -71,7 +72,7 @@ class Bot extends Request {
 	/**
 	* check for login
 	*
-	* @return bool  returns true if the bot is logged in, false otherwise
+	* @return bool  true if the bot is logged in, false otherwise
 	* @access public
 	*/
 	public function isLoggedIn() {
@@ -150,19 +151,21 @@ class Bot extends Request {
 	* generator for the content of all pages of a given namespace
 	*
 	* @param String $namespace  the namespace to get pages from
+	* @param Strnig $filter     filter for the type of pages. Allowed values are "all", "redirects" and "nonredirects"
 	* @param String $limit      the maximum amount of pages to query
 	* @return Generator|Array   an array containing title and content of all pages
 	* @access public
 	*/
-	public function getAllpagesContents(String $namespace, String $limit = "max") {
+	public function getAllpagesContents(String $namespace, String $filter = "all", String $limit = "max") {
 		$pages = "";
 		$counter = 0;
+		$max = $this->hasRight("apihighlimits") ? 500 : 50;
 		
-		foreach($this->getAllpages($namespace, $limit) as $page) {
+		foreach($this->getAllpages($namespace, $filter, $limit) as $page) {
 			$pages .= "|".$page;
 			$counter++;
 			
-			if($counter == $limit) {
+			if($counter === $max) {
 				foreach($this->getContent(trim($pages, "|")) as $page) {
 					yield $page;
 				}
@@ -232,12 +235,13 @@ class Bot extends Request {
 	public function getBacklinksContents(String $link, String $limit = "max") {
 		$pages = "";
 		$counter = 0;
+		$max = $this->hasRight("apihighlimits") ? 500 : 50;
 		
 		foreach($this->getBacklinks($link, $limit) as $backlink) {
 			$pages .= "|".$backlink;
 			$counter++;
 			
-			if($counter == $limit) {
+			if($counter === $max) {
 				foreach($this->getContent(trim($pages, "|")) as $backlink) {
 					yield $backlink;
 				}
@@ -287,12 +291,13 @@ class Bot extends Request {
 	public function getCategoryMembersContents(String $category, String $limit = "max", Array $types = array("page", "subcat", "file")) {
 		$pages = "";
 		$counter = 0;
+		$max = $this->hasRight("apihighlimits") ? 500 : 50;
 		
 		foreach($this->getCategoryMembers($category, $limit, $types) as $categorymember) {
 			$pages .= "|".$categorymember;
 			$counter++;
 			
-			if($counter == $limit) {
+			if($counter === $max) {
 				foreach($this->getContent(trim($pages, "|")) as $categorymember) {
 					yield $categorymember;
 				}
@@ -584,12 +589,13 @@ class Bot extends Request {
 	public function getTransclusionsContents(String $link, String $limit = "max") {
 		$pages = "";
 		$counter = 0;
+		$max = $this->hasRight("apihighlimits") ? 500 : 50;
 		
 		foreach($this->getTransclusions($link, $limit) as $transclusion) {
 			$pages .= "|".$transclusion;
 			$counter++;
 			
-			if($counter == $limit) {
+			if($counter === $max) {
 				foreach($this->getContent(trim($pages, "|")) as $transclusion) {
 					yield $transclusion;
 				}
@@ -630,6 +636,26 @@ class Bot extends Request {
 		if(isset($queryResult->continue)) {
 			yield from $this->getUsercontribs($user, $limit, $queryResult->continue["uccontinue"]);
 		}
+	}
+	
+	/**
+	* check whether the current user has a given right
+	*
+	* @param String $right  the right to check
+	* @return bool          true if the user has the right, false if not
+	* @access public
+	*/
+	public function hasRight(String $right) {
+		$userrights = new Userrights($this->url);
+		$userrights->setCookieFile($this->cookiefile);
+		$queryResult = $userrights->execute();
+		
+		foreach($queryResult->query->userinfo->rights->r as $userright) {
+			if((String)$userright === $right) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	/**
