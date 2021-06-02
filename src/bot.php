@@ -14,6 +14,7 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 * @method SimpleXMLElement delete(String $title, String $reason)
 * @method SimpleXMLElement edit(String $page, String $content, String $summary, String $isbot, String $isminor)
 * @method Parsetree expandTemplates(String $content)
+* @method String expandWikitext(String $text, String $title)
 * @method Generator|String getAllpages(String $namespace, String $limit, String $continue)
 * @method Generator|Array getAllpagesContents(String $namespace, String $filter, String $limit)
 * @method Generator|Array getAllusers(String $limit, String $continue)
@@ -121,6 +122,20 @@ class Bot extends Request {
 		$parsetree = new Parsetree($this->url, $content);
 		$parsetree->setCookieFile($this->cookiefile);
 		return $parsetree;
+	}
+	
+	/**
+	* expander for wikitext
+	*
+	* @param String $text   the text to be expanded
+	* @param String $title  a page title for page-sensitive expanding
+	* @return String        the expanded wikitext
+	* @access public
+	*/
+	public function expandWikitext(String $text, String $title = "") {
+		$wikitext = new Wikitext($this->url, $text, $title);
+		$wikitext->setCookieFile($this->cookiefile);
+		return $wikitext->execute();
 	}
 	
 	/**
