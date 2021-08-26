@@ -15,7 +15,7 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 * @method SimpleXMLElement edit(String $page, String $content, String $summary, String $isbot, String $isminor)
 * @method Parsetree expandTemplates(String $content)
 * @method String expandWikitext(String $text, String $title)
-* @method Generator|String getAllpages(String $namespace, String $limit, String $continue)
+* @method Generator|String getAllpages(String $namespace, String $filter, String $limit, String $continue)
 * @method Generator|Array getAllpagesContents(String $namespace, String $filter, String $limit)
 * @method Generator|Array getAllusers(String $limit, String $continue)
 * @method Generator|String getBacklinks(String $link, String $limit, String $continue)
@@ -148,7 +148,7 @@ class Bot extends Request {
 	* @return Generator|String  all page titles in a given namespace
 	* @access public
 	*/
-	public function getAllpages(String $namespace, $filter = "all", String $limit = "max", String $continue = "") {
+	public function getAllpages(String $namespace, String $filter = "all", String $limit = "max", String $continue = "") {
 		$allpages = new Allpages($this->url, $namespace, $limit, $filter, $continue);
 		$allpages->setCookieFile($this->cookiefile);
 		$queryResult = $allpages->execute();
@@ -340,7 +340,11 @@ class Bot extends Request {
 		
 		if(isset($queryResult->query)) {
 			foreach($queryResult->query->pages->page as $content) {
-				yield ["title" => (String)$content["title"], "content" => (String)$content->revisions->rev->slots->slot];
+				if(!isset($content->revisions->rev)) {
+					yield from $this->getContent($content["title"]);
+				} else {
+					yield ["title" => (String)$content["title"], "content" => (String)$content->revisions->rev->slots->slot];
+				}
 			}
 		}
 	}
@@ -516,7 +520,7 @@ class Bot extends Request {
 		$queryResult = $revisionUsers->execute();
 		
 		foreach($queryResult->query->pages->page->revisions->rev as $revision) {
-			yield (String)$revision["user"];
+			yield ["user" => (String)$revision["user"], "parentid" => (String)$revision["parentid"], "revid" => (String)$revision["revid"]];
 		}
 		
 		if(isset($queryResult->continue)) {
@@ -789,6 +793,7 @@ class Bot extends Request {
 	* @param String $text            initial text of the file page
 	* @param String $comment         comment displayed when uploading the file
 	* @param String $ignorewarnings  whether warnings should be ignored when uploading a file or not
+	* @return SimpleXMLElement       the SimpleXMLElement-representation of the query result
 	* @access public
 	*/
 	public function uploadbyurl(String $fileurl, String $filename, String $text, String $comment = "", String $ignorewarnings = "1") {

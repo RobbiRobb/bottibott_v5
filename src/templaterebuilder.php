@@ -11,10 +11,12 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 * @method void setTemplate(mixed $template)
 * @method String getTitle()
 * @method mixed getParam(String $value)
-* @method mixed getParamContains(String $value)
 * @method mixed getValue(String $param)
+* @method boolean contains(String $param)
+* @method mixed paramContains(String $value)
 * @method TemplateRebuilder removeParam(String $param)
 * @method TemplateRebuilder addParam(String $param, String $value)
+* @method TemplateRebuilder renameParam(String $oldName, String $newName)
 * @method String rebuild()
 */
 class TemplateRebuilder {
@@ -70,22 +72,6 @@ class TemplateRebuilder {
 	}
 	
 	/**
-	* getter for a parameter name of which the value contains the given value
-	*
-	* @param String $value  the value to look for in all of the values
-	* @return mixed         the name of first parameter of which the value contains the value to look for, false if none is found
-	* @access public
-	*/
-	public function getParamContains(String $value) {
-		foreach($this->template as $template) {
-			if(strpos($template["value"], $value) !== false) {
-				return $template["name"];
-			}
-		}
-		return false;
-	}
-	
-	/**
 	* getter for the value given a parameter name
 	*
 	* @param String $param  the parameter name to look for
@@ -101,6 +87,33 @@ class TemplateRebuilder {
 	}
 	
 	/**
+	* check if a given parameter is set in the template
+	*
+	* @param String $param  the parameter to look for
+	* @return boolean       true if the parameter exists, false otherwise
+	* @access public
+	*/
+	public function contains(String $param) {
+		return isset($this->template[$param]);
+	}
+	
+	/**
+	* getter for a parameter name of which the value contains the given value
+	*
+	* @param String $value  the value to look for in all of the values
+	* @return mixed         the name of first parameter of which the value contains the value to look for, false if none is found
+	* @access public
+	*/
+	public function paramContains(String $value) {
+		foreach($this->template as $template) {
+			if(strpos($template["value"], $value) !== false) {
+				return $template["name"];
+			}
+		}
+		return false;
+	}
+	
+	/**
 	* remove an existing parameter from the template
 	*
 	* @param String $param       the name of the parameter to remove
@@ -113,7 +126,7 @@ class TemplateRebuilder {
 	}
 	
 	/**
-	* add a param and a value to the template
+	* add a parameter and a value to the template
 	*
 	* @param String $param       the name of the parameter to add
 	* @param String $value       the content of the value to add
@@ -123,6 +136,31 @@ class TemplateRebuilder {
 	public function addParam(String $param, String $value) {
 		$this->template[trim($param)]["name"] = $param;
 		$this->template[trim($param)]["value"] = $value;
+		return $this;
+	}
+	
+	/**
+	* rename a parameter in a template without changing it's value. If the parameter does not exists, the template will not be changed
+	*
+	* @param String $oldName     the old name of the parameter
+	* @param String $newName     the new name of the parameter
+	* @return TemplateRebuilder  itself to allow the chaining of calls
+	* @access public
+	*/
+	public function renameParam(String $oldName, String $newName) {
+		if(!$this->contains($oldName)) {
+			return $this;
+		}
+		
+		$offset = array_search($oldName, array_keys($this->template));
+		
+		$this->template = array_merge(
+			array_slice($this->template, 0, $offset),
+			array(trim($newName) => array("name" => $newName, "value" => $this->template[trim($oldName)]["value"])),
+			array_slice($this->template, $offset)
+		);
+		unset($this->template[trim($oldName)]);
+		
 		return $this;
 	}
 	

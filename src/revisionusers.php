@@ -74,7 +74,7 @@ class RevisionUsers extends Request {
 		$revisionusers->setCookieFile($this->cookiefile);
 		$revisionusers->addToGetFields("action", "query");
 		$revisionusers->addToGetFields("prop", "revisions");
-		$revisionusers->addToGetFields("rvprop", "user");
+		$revisionusers->addToGetFields("rvprop", "user|ids");
 		$revisionusers->addToGetFields("format", "xml");
 		$revisionusers->addToGetFields("rvlimit", $this->limit);
 		if(!empty($this->continue)) { $revisionusers->addToGetFields("rvcontinue", $this->continue); }
