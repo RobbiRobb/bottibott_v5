@@ -690,13 +690,11 @@ class Bot extends Request {
 		$queryResult = $redirects->execute();
 		
 		foreach($queryResult->query->pages->page as $page) {
-			foreach($queryResult->query->redirects->r as $redirect) {
-				if((String)$redirect["to"] === (String)$page["title"]) {
-					yield ["title" => (String)$redirect["from"], "redirect" => true];
-					continue 2;
-				}
+			if(isset($queryResult->query->redirects)) {
+				yield ["title" => (String)$queryResult->query->redirects->r["from"], "redirect" => true];
+			} else {
+				yield ["title" => (String)$page["title"], "redirect" => false];
 			}
-			yield ["title" => (String)$page["title"], "redirect" => false];
 		}
 	}
 	
