@@ -126,7 +126,7 @@ class TemplateRebuilder {
 	}
 	
 	/**
-	* add a parameter and a value to the template
+	* add a parameter and a value to the template. Will not change the template if the parameter already exists
 	*
 	* @param String $param       the name of the parameter to add
 	* @param String $value       the content of the value to add
@@ -134,6 +134,23 @@ class TemplateRebuilder {
 	* @access public
 	*/
 	public function addParam(String $param, String $value) {
+		if($this->contains($param)) {
+			retun $this;
+		}
+		$this->template[trim($param)]["name"] = $param;
+		$this->template[trim($param)]["value"] = $value;
+		return $this;
+	}
+	
+	/**
+	* add or overwrite an existing parameter and a value to a template
+	*
+	* @param String $param       the name of the parameter to add
+	* @param String $value       the content of the value to add
+	* @return TemplateRebuilder  itself to allow the chaining of calls
+	* @access public
+	*/
+	public function setParam(String $param, String $value) {
 		$this->template[trim($param)]["name"] = $param;
 		$this->template[trim($param)]["value"] = $value;
 		return $this;
