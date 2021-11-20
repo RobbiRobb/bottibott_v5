@@ -16,6 +16,7 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 * @method mixed paramContains(String $value)
 * @method TemplateRebuilder removeParam(String $param)
 * @method TemplateRebuilder addParam(String $param, String $value)
+* @method TemplateRebuilder setParam(String $param, String $value)
 * @method TemplateRebuilder renameParam(String $oldName, String $newName)
 * @method String rebuild()
 */
@@ -135,7 +136,7 @@ class TemplateRebuilder {
 	*/
 	public function addParam(String $param, String $value) {
 		if($this->contains($param)) {
-			retun $this;
+			return $this;
 		}
 		$this->template[trim($param)]["name"] = $param;
 		$this->template[trim($param)]["value"] = $value;
