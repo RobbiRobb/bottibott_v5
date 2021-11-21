@@ -73,6 +73,22 @@ class TemplateRebuilder {
 	}
 	
 	/**
+	* generator for all parameters of a template
+	*
+	* @return mixed   yields every parameter of the template or the entire template, if the template is just a string
+	* @access public
+	*/
+	public function getParams() {
+		if(is_array($this->template)) {
+			foreach($this->template as $template) {
+				yield $template;
+			}
+		} else {
+			yield $this->template;
+		}
+	}
+	
+	/**
 	* getter for the value given a parameter name
 	*
 	* @param String $param  the parameter name to look for
