@@ -244,5 +244,35 @@ class TemplateRebuilder {
 			return $s;
 		}
 	}
+	
+	/**
+	* rebuilds the values of a given parameter
+	*
+	* @param String $param  the name of the param to rebuild
+	* @return mixed         the string representation of the parameter. False if the parameter was not set or does not exist
+	* @access public
+	*/
+	public function rebuildParam(String $param) {
+		$value = $this->getValue($param);
+		if($value === false) {
+			return false;
+		}
+		if(gettype($value) == "string") {
+			return $this->getValue($param);
+		} else {
+			$s = "";
+			foreach($value as $part) {
+				if(is_array($part)) {
+					foreach($part as $subTemplateName => $template) {
+						$templateRebuilder = new TemplateRebuilder($template, $subTemplateName);
+						$s .= "{{".$subTemplateName.$templateRebuilder->rebuild()."}}";
+					}
+				} else {
+					$s .= $part;
+				}
+			}
+			return $s;
+		}
+	}
 }
 ?>
