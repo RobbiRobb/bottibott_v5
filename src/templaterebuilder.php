@@ -57,6 +57,18 @@ class TemplateRebuilder {
 	}
 	
 	/**
+	* setter for the name of the template
+	*
+	* @param String $title       the new name of the template
+	* @return TemplateRebuilder  itself to allow the chaining of calls
+	* @access public
+	*/
+	public function setTitle(String $title) {
+		$this->title = $title;
+		return $this;
+	}
+	
+	/**
 	* getter for a parameter name given a value
 	*
 	* @param String $value  the value to look for
@@ -208,7 +220,7 @@ class TemplateRebuilder {
 		if(gettype($this->template) == "string") {
 			return $this->template;
 		} else {
-			$s = "";
+			$s = "{{" . $this->getTitle();
 			foreach($this->template as $paramName => $param) {
 				if(is_array($param["value"])) {
 					if(is_numeric($param["name"])) {
@@ -257,7 +269,7 @@ class TemplateRebuilder {
 					}
 				}
 			}
-			return $s;
+			return $s . "}}";
 		}
 	}
 	
