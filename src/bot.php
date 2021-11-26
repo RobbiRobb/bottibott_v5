@@ -32,7 +32,7 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 * @method Generator|Array getRevisions(String $revids)
 * @method Generator|String getRevisionUsers(String $page, String $limit, String $continue)
 * @method Generator|String getSystemEditCount(String $users)
-* @method Array getTemplateParameters($template)
+* @method Array getTemplateParameters(String $content)
 * @method String getToken(String $token)
 * @method Generator|String getTransclusions(String $link, String $limit, String $continue)
 * @method Generator|Array getTransclusionsContents(String $link, String $limit)
@@ -552,10 +552,8 @@ class Bot extends Request {
 	* @return Array            all the parameters of a template
 	* @access public
 	*/
-	public function getTemplateParameters($template) {
-		$content = preg_replace("/<noinclude>(?<=\<noinclude\>)(.*?)(?=\<\/noinclude\>)<\/noinclude>/", "", $this->getContent($template)->current()["content"]);
-		
-		preg_match_all("/\{\{\{([^\|\}\{]+)/", $content, $matches);
+	public function getTemplateParameters(String $content) {
+		preg_match_all("/\{\{\{([^\|\}\{]+)/", preg_replace("/<noinclude>(?<=\<noinclude\>)(.*?)(?=\<\/noinclude\>)<\/noinclude>/", "", $content), $matches);
 		
 		$parameters = array_unique($matches[1]);
 		asort($parameters);

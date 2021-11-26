@@ -10,15 +10,20 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 *
 * @method void setTemplate(mixed $template)
 * @method String getTitle()
+* @method TemplateRebuilder setTitle(String $title)
 * @method mixed getParam(String $value)
+* @method Generator|mixed getParams()
 * @method mixed getValue(String $param)
 * @method boolean contains(String $param)
 * @method mixed paramContains(String $value)
 * @method TemplateRebuilder removeParam(String $param)
+* @method TemplateRebuilder addParamBefore(String $before, String $newParam, String $value)
+* @method TemplateRebuilder addParamAfter(String $after, String $newParam, String $value)
 * @method TemplateRebuilder addParam(String $param, String $value)
 * @method TemplateRebuilder setParam(String $param, String $value)
 * @method TemplateRebuilder renameParam(String $oldName, String $newName)
 * @method String rebuild()
+* @method mixed rebuildParam(String $param)
 */
 class TemplateRebuilder {
 	private mixed $template;
@@ -172,6 +177,70 @@ class TemplateRebuilder {
 	}
 	
 	/**
+	* add a parameter and a value before another parameter
+	* if $before is not set in the template it will attempt to add the parameter at the end of the template
+	* if the new parameter is already set the template will not be changed
+	*
+	* @param String $before      the name of the param before which the new param should be added
+	* @param String $param       the name of the parameter to add
+	* @param String $value       the content of the value to add
+	* @return TemplateRebuilder  itself to allow the chaining of calls
+	* @access public
+	*/
+	public function addParamBefore(String $before, String $newParam, String $value) {
+		if(!$this->contains($before)) {
+			return $this->addParam($param, $value);
+		}
+		
+		$newTemplate = array();
+		
+		foreach($this->getParams() as $param) {
+			if(trim($param["name"]) === $before) {
+				$newTemplate[trim($newParam)] = array("name" => $newParam, "value" => $value);
+				$newTemplate[trim($param["name"])] = array("name" => $param["name"], "value" => $param["value"]);
+			} else {
+				$newTemplate[trim($param["name"])] = array("name" => $param["name"], "value" => $param["value"]);
+			}
+		}
+		
+		$this->template = $newTemplate;
+		
+		return $this;
+	}
+	
+	/**
+	* add a parameter and a value after another parameter
+	* if $after is not set in the template it will attempt to add the parameter at the end of the template
+	* if the new parameter is already set the template will not be changed
+	*
+	* @param String $after       the name of the param after which the new param should be added
+	* @param String $param       the name of the parameter to add
+	* @param String $value       the content of the value to add
+	* @return TemplateRebuilder  itself to allow the chaining of calls
+	* @access public
+	*/
+	public function addParamAfter(String $after, String $newParam, String $value) {
+		if(!$this->contains($after)) {
+			return $this->addParam($param, $value);
+		}
+		
+		$newTemplate = array();
+		
+		foreach($this->getParams() as $param) {
+			if(trim($param["name"]) === $after) {
+				$newTemplate[trim($param["name"])] = array("name" => $param["name"], "value" => $param["value"]);
+				$newTemplate[trim($newParam)] = array("name" => $newParam, "value" => $value);
+			} else {
+				$newTemplate[trim($param["name"])] = array("name" => $param["name"], "value" => $param["value"]);
+			}
+		}
+		
+		$this->template = $newTemplate;
+		
+		return $this;
+	}
+	
+	/**
 	* add or overwrite an existing parameter and a value to a template
 	*
 	* @param String $param       the name of the parameter to add
@@ -198,14 +267,17 @@ class TemplateRebuilder {
 			return $this;
 		}
 		
-		$offset = array_search($oldName, array_keys($this->template));
+		$newTemplate = array();
 		
-		$this->template = array_merge(
-			array_slice($this->template, 0, $offset),
-			array(trim($newName) => array("name" => $newName, "value" => $this->template[trim($oldName)]["value"])),
-			array_slice($this->template, $offset)
-		);
-		unset($this->template[trim($oldName)]);
+		foreach($this->getParams() as $param) {
+			if(trim($param["name"]) === $oldName) {
+				$newTemplate[trim($param["name"])] = array("name" => $newName, "value" => $param["value"]);
+			} else {
+				$newTemplate[trim($param["name"])] = array("name" => $param["name"], "value" => $param["value"]);
+			}
+		}
+		
+		$this->template = $newTemplate;
 		
 		return $this;
 	}
@@ -221,13 +293,13 @@ class TemplateRebuilder {
 			return $this->template;
 		} else {
 			$s = "{{" . $this->getTitle();
-			foreach($this->template as $paramName => $param) {
+			foreach($this->template as $param) {
 				if(is_array($param["value"])) {
 					if(is_numeric($param["name"])) {
 						if(trim($param["name"]) == 1) {
 							$s .= "|";
 						} else {
-							for($i = 2; $i <= $paramName; $i++) {
+							for($i = 2; $i <= $param["name"]; $i++) {
 								if(!isset($this->template[$i])) {
 									$s .= "|".$param["name"]."=";
 									break;
@@ -245,8 +317,8 @@ class TemplateRebuilder {
 							$s .= $subtemplates;
 						} else {
 							foreach($subtemplates as $subTemplateName => $subTemplateValues) {
-								$templateRebuilder = new TemplateRebuilder($subTemplateValues);
-								$s .= "{{".$subTemplateName.$templateRebuilder->rebuild()."}}";
+								$templateRebuilder = new TemplateRebuilder((gettype($subTemplateValues) === "string" ? array() : $subTemplateValues), $subTemplateName);
+								$s .= $templateRebuilder->rebuild();
 							}
 						}
 					}
@@ -255,7 +327,7 @@ class TemplateRebuilder {
 						if(trim($param["name"]) == 1) {
 							$s .= "|".$param["value"];
 						} else {
-							for($i = 2; $i <= $paramName; $i++) {
+							for($i = 2; $i <= $param["name"]; $i++) {
 								if(!isset($this->template[$i])) {
 									$s .= "|".$param["name"]."=".$param["value"];
 									break;
@@ -291,9 +363,9 @@ class TemplateRebuilder {
 			$s = "";
 			foreach($value as $part) {
 				if(is_array($part)) {
-					foreach($part as $subTemplateName => $template) {
-						$templateRebuilder = new TemplateRebuilder($template, $subTemplateName);
-						$s .= "{{".$subTemplateName.$templateRebuilder->rebuild()."}}";
+					foreach($part as $subTemplateName => $subTemplateValues) {
+						$templateRebuilder = new TemplateRebuilder((gettype($subTemplateValues) === "string" ? array() : $subTemplateValues), $subTemplateName);
+						$s .= $templateRebuilder->rebuild();
 					}
 				} else {
 					$s .= $part;
