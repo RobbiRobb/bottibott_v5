@@ -90,7 +90,7 @@ class Fileusage extends Request {
 		$fileusage->addToGetFields("prop", "fileusage");
 		$fileusage->addToGetFields("format", "xml");
 		$fileusage->addToGetFields("fulimit", $this->limit);
-		if(!empty($this->namespace) || $this>namespace === "0") { $fileusage->addToGetFields("funamespace", $this->namespace); } // MediaWiki doesn't like an empty namespace
+		if(!empty($this->namespace) || $this->namespace === "0") { $fileusage->addToGetFields("funamespace", $this->namespace); } // MediaWiki doesn't like an empty namespace
 		if(!empty($this->continue)) { $fileusage->addToGetFields("fucontinue", $this->continue); } // MediaWiki doesn't like an empty continue
 		$fileusage->addToPostFields("titles", $this->files);
 		return $fileusage->execute();

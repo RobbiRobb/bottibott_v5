@@ -92,7 +92,7 @@ class TemplateRebuilder {
 	/**
 	* generator for all parameters of a template
 	*
-	* @return mixed   yields every parameter of the template or the entire template, if the template is just a string
+	* @return Generator|mixed   yields every parameter of the template or the entire template, if the template is just a string
 	* @access public
 	*/
 	public function getParams() {

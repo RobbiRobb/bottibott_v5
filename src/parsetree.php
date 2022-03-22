@@ -5,7 +5,7 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 * A class for representing API-requests for parsetrees
 *
 * The class Parsetree allows the representation of parsetrees
-* It allows the bot to generate und expand those parsetrees
+* It allows the bot to generate and expand those parsetrees
 *
 * @method void setContent(String $content)
 * @method Generator|Parser match(String $expandedContent)

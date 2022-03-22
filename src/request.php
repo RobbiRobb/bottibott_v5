@@ -7,16 +7,16 @@
 * @method void setCookieFile(String $cookiefile)
 */
 abstract class Request {
-	private $url;
-	private $cookiefile;
+	protected $url;
+	protected $cookiefile;
 	
 	/**
 	* setter for the url
 	*
 	* @param String $url  the url that should be set
-	* @access public
+	* @access protected
 	*/
-	public function setUrl(String $url) {
+	protected function setUrl(String $url) {
 		$this->url = $url;
 	}
 	
@@ -24,9 +24,9 @@ abstract class Request {
 	* setter for the cookiefile
 	*
 	* @param String $cookiefile  the name of the cookiefile that should be used
-	* @access public
+	* @access protected
 	*/
-	public function setCookieFile(String $cookiefile) {
+	protected function setCookieFile(String $cookiefile) {
 		$this->cookiefile = $cookiefile;
 	}
 }

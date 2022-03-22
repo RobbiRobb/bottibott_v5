@@ -42,6 +42,7 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 * @method mixed login(String $username, String $password)
 * @method SimpleXMLElement logout()
 * @method SimpleXMLElement move(String $from, String $to, String $reason, String $noredirect, String $movetalk)
+* @method Wikitextparser parse(String $title, String $text)
 * @method SimpleXMLElement undo(String $page, String $revision, String $summary, String $isbot, String $isminor)
 * @method SimpleXMLElement upload(String $filepath, String $filename, String $text, String $comment, String $ignorewarnings)
 * @method SimpleXMLElement uploadbyurl(String $fileurl, String $filename, String $text, String $comment, String $ignorewarnings)
@@ -744,6 +745,22 @@ class Bot extends Request {
 		$move = new Move($this->url, $from, $to, $reason, $noredirect, $movetalk);
 		$move->setCookieFile($this->cookiefile);
 		return $move->execute($this->getToken("csrf"));
+	}
+	
+	
+	/**
+	* parsing the text of an article or free text
+	* can be used to get the parsed HTML, get the sections of an article or get a section from a name
+	*
+	* @param String $title    a title of a page that should be parsed
+	* @param String $text     free text using wiki markup that can be parsed
+	* @return Wikitextparser  a Wikitextparser object that can be used for further evaluation
+	* @access public
+	*/
+	public function parse(String $title = "", String $text = "") {
+		$wikitextparser = new Wikitextparser($this->url, $title, $text);
+		$wikitextparser->setCookieFile($this->cookiefile);
+		return $wikitextparser;
 	}
 	
 	/**

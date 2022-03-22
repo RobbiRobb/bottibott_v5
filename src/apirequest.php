@@ -18,6 +18,7 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 class APIRequest extends Request {
 	private Array $get;
 	private Array $post;
+	private static ?CurlHandle $request = null;
 	
 	/**
 	* constructor for class APIRequest
@@ -31,6 +32,9 @@ class APIRequest extends Request {
 		$this->get = array();
 		$this->post = array();
 		$this->cookiefile = "cookies.txt";
+		if(self::$request === null) {
+			self::$request = curl_init();
+		}
 	}
 	
 	/**
@@ -104,15 +108,14 @@ class APIRequest extends Request {
 	* @access public
 	*/
 	public function execute() {
-		$request = curl_init();
-		curl_setopt($request, CURLOPT_URL, $this->url."?".http_build_query($this->get));
-		curl_setopt($request, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($request, CURLOPT_COOKIEFILE, $this->cookiefile);
-		curl_setopt($request, CURLOPT_COOKIEJAR, $this->cookiefile);
-		curl_setopt($request, CURLOPT_POST, true);
-		curl_setopt($request, CURLOPT_POSTFIELDS, $this->post);
-		$queryResult = simplexml_load_string(curl_exec($request));
-		curl_close($request);
+		curl_setopt(self::$request, CURLOPT_URL, $this->url."?".http_build_query($this->get));
+		curl_setopt(self::$request, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt(self::$request, CURLOPT_COOKIEFILE, $this->cookiefile);
+		curl_setopt(self::$request, CURLOPT_COOKIEJAR, $this->cookiefile);
+		curl_setopt(self::$request, CURLOPT_POST, true);
+		curl_setopt(self::$request, CURLOPT_POSTFIELDS, $this->post);
+		$queryResult = simplexml_load_string(curl_exec(self::$request));
+		curl_close(self::$request);
 		return $queryResult;
 	}
 }
