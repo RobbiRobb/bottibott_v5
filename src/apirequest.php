@@ -14,11 +14,11 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 * @method void setPostFields(Array $fields)
 * @method void addToPostFields(String $key, String $value)
 * @method SimpleXMLElement execute()
+* @method CurlHandle getRequest()
 */
 class APIRequest extends Request {
 	private Array $get;
 	private Array $post;
-	private static ?CurlHandle $request = null;
 	
 	/**
 	* constructor for class APIRequest
@@ -32,9 +32,6 @@ class APIRequest extends Request {
 		$this->get = array();
 		$this->post = array();
 		$this->cookiefile = "cookies.txt";
-		if(self::$request === null) {
-			self::$request = curl_init();
-		}
 	}
 	
 	/**
@@ -108,15 +105,33 @@ class APIRequest extends Request {
 	* @access public
 	*/
 	public function execute() {
-		curl_setopt(self::$request, CURLOPT_URL, $this->url."?".http_build_query($this->get));
-		curl_setopt(self::$request, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt(self::$request, CURLOPT_COOKIEFILE, $this->cookiefile);
-		curl_setopt(self::$request, CURLOPT_COOKIEJAR, $this->cookiefile);
-		curl_setopt(self::$request, CURLOPT_POST, true);
-		curl_setopt(self::$request, CURLOPT_POSTFIELDS, $this->post);
-		$queryResult = simplexml_load_string(curl_exec(self::$request));
-		curl_close(self::$request);
+		$request = curl_init();
+		curl_setopt($request, CURLOPT_URL, $this->url."?".http_build_query($this->get));
+		curl_setopt($request, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($request, CURLOPT_COOKIEFILE, $this->cookiefile);
+		curl_setopt($request, CURLOPT_COOKIEJAR, $this->cookiefile);
+		curl_setopt($request, CURLOPT_POST, true);
+		curl_setopt($request, CURLOPT_POSTFIELDS, $this->post);
+		$queryResult = simplexml_load_string(curl_exec($request));
+		curl_close($request);
 		return $queryResult;
+	}
+	
+	/**
+	* getter for the API-request for executing multiple requests at once
+	*
+	* @return CurlHandle  a reference to the request handle
+	* @access public
+	*/
+	public function &getRequest() {
+		$request = curl_init();
+		curl_setopt($request, CURLOPT_URL, $this->url."?".http_build_query($this->get));
+		curl_setopt($request, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($request, CURLOPT_COOKIEFILE, $this->cookiefile);
+		curl_setopt($request, CURLOPT_COOKIEJAR, $this->cookiefile);
+		curl_setopt($request, CURLOPT_POST, true);
+		curl_setopt($request, CURLOPT_POSTFIELDS, $this->post);
+		return $request;
 	}
 }
 ?>

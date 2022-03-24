@@ -23,6 +23,7 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 * @method Generator|String getCategoryMembers(String $category, String $limit, Array $types, String $continue)
 * @method Generator|Array getCategoryMembersContents(String $category, String $limit, Array $types)
 * @method Generator|Array getContent(String $articles)
+* @method SimpleXMLElement getContentRequest(String $articles)
 * @method Generator|Array getFileusage(String $files, String $limit, String $namespace, String $continue)
 * @method Generator|Array getLanglinks(String $titles, String $lang, String $limit)
 * @method Generator|String getLinklist(String $link, String $limit)
@@ -177,21 +178,31 @@ class Bot extends Request {
 		$counter = 0;
 		$max = $this->hasRight("apihighlimits") ? 500 : 50;
 		
+		$requester = new APIMultiRequest();
+		
 		foreach($this->getAllpages($namespace, $filter, $limit) as $page) {
 			$pages .= "|".$page;
 			$counter++;
 			
 			if($counter === $max) {
-				foreach($this->getContent(trim($pages, "|")) as $page) {
-					yield $page;
-				}
+				$requester->addRequest($this->getContentRequest(trim($pages, "|")));
 				$pages = "";
 				$counter = 0;
 			}
 		}
 		
-		foreach($this->getContent(trim($pages, "|")) as $page) {
-			yield $page;
+		$requester->addRequest($this->getContentRequest(trim($pages, "|")));
+		
+		foreach($requester->execute() as $queryResult) {
+			if(isset($queryResult->query)) {
+				foreach($queryResult->query->pages->page as $content) {
+					if(!isset($content->revisions->rev)) {
+						yield from $this->getContent($content["title"]);
+					} else {
+						yield ["title" => (String)$content["title"], "content" => (String)$content->revisions->rev->slots->slot];
+					}
+				}
+			}
 		}
 	}
 	
@@ -252,22 +263,32 @@ class Bot extends Request {
 		$pages = "";
 		$counter = 0;
 		$max = $this->hasRight("apihighlimits") ? 500 : 50;
+	
+		$requester = new APIMultiRequest();
 		
 		foreach($this->getBacklinks($link, $limit) as $backlink) {
 			$pages .= "|".$backlink;
 			$counter++;
 			
 			if($counter === $max) {
-				foreach($this->getContent(trim($pages, "|")) as $backlink) {
-					yield $backlink;
-				}
+				$requester->addRequest($this->getContentRequest(trim($pages, "|")));
 				$pages = "";
 				$counter = 0;
 			}
 		}
 		
-		foreach($this->getContent(trim($pages, "|")) as $backlink) {
-			yield $backlink;
+		$requester->addRequest($this->getContentRequest(trim($pages, "|")));
+		
+		foreach($requester->execute() as $queryResult) {
+			if(isset($queryResult->query)) {
+				foreach($queryResult->query->pages->page as $content) {
+					if(!isset($content->revisions->rev)) {
+						yield from $this->getContent($content["title"]);
+					} else {
+						yield ["title" => (String)$content["title"], "content" => (String)$content->revisions->rev->slots->slot];
+					}
+				}
+			}
 		}
 	}
 	
@@ -309,21 +330,31 @@ class Bot extends Request {
 		$counter = 0;
 		$max = $this->hasRight("apihighlimits") ? 500 : 50;
 		
+		$requester = new APIMultiRequest();
+		
 		foreach($this->getCategoryMembers($category, $limit, $types) as $categorymember) {
 			$pages .= "|".$categorymember;
 			$counter++;
 			
 			if($counter === $max) {
-				foreach($this->getContent(trim($pages, "|")) as $categorymember) {
-					yield $categorymember;
-				}
+				$requester->addRequest($this->getContentRequest(trim($pages, "|")));
 				$pages = "";
 				$counter = 0;
 			}
 		}
 		
-		foreach($this->getContent(trim($pages, "|")) as $categorymember) {
-			yield $categorymember;
+		$requester->addRequest($this->getContentRequest(trim($pages, "|")));
+		
+		foreach($requester->execute() as $queryResult) {
+			if(isset($queryResult->query)) {
+				foreach($queryResult->query->pages->page as $content) {
+					if(!isset($content->revisions->rev)) {
+						yield from $this->getContent($content["title"]);
+					} else {
+						yield ["title" => (String)$content["title"], "content" => (String)$content->revisions->rev->slots->slot];
+					}
+				}
+			}
 		}
 	}
 	
@@ -348,6 +379,19 @@ class Bot extends Request {
 				}
 			}
 		}
+	}
+	
+	/**
+	* getter for the request to the content of a page
+	*
+	* @param String $titles    the titles of the pages for which the content should be queried
+	* @return CurlHandle  a reference to the request handle
+	* @access public
+	*/
+	public function &getContentRequest(String $articles) {
+		$content = new Content($this->url, $articles);
+		$content->setCookieFile($this->cookiefile);
+		return $content->getRequest();
 	}
 	
 	/**
@@ -609,21 +653,31 @@ class Bot extends Request {
 		$counter = 0;
 		$max = $this->hasRight("apihighlimits") ? 500 : 50;
 		
+		$requester = new APIMultiRequest();
+		
 		foreach($this->getTransclusions($link, $limit) as $transclusion) {
 			$pages .= "|".$transclusion;
 			$counter++;
 			
 			if($counter === $max) {
-				foreach($this->getContent(trim($pages, "|")) as $transclusion) {
-					yield $transclusion;
-				}
+				$requester->addRequest($this->getContentRequest(trim($pages, "|")));
 				$pages = "";
 				$counter = 0;
 			}
 		}
 		
-		foreach($this->getContent(trim($pages, "|")) as $transclusion) {
-			yield $transclusion;
+		$requester->addRequest($this->getContentRequest(trim($pages, "|")));
+		
+		foreach($requester->execute() as $queryResult) {
+			if(isset($queryResult->query)) {
+				foreach($queryResult->query->pages->page as $content) {
+					if(!isset($content->revisions->rev)) {
+						yield from $this->getContent($content["title"]);
+					} else {
+						yield ["title" => (String)$content["title"], "content" => (String)$content->revisions->rev->slots->slot];
+					}
+				}
+			}
 		}
 	}
 	

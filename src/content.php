@@ -7,6 +7,7 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 * The class Content allows the creation of API-requests for the content of given pages
 *
 * @method SimpleXMLElement execute()
+* @method CurlHandle getRequest()
 */
 class Content extends Request {
 	private String $titles;
@@ -39,6 +40,24 @@ class Content extends Request {
 		$content->addToGetFields("rvslots", "*");
 		$content->addToPostFields("titles", $this->titles);
 		return $content->execute();
+	}
+	
+	/**
+	* getter for the API-request for executing multiple requests at once
+	*
+	* @return CurlHandle  a reference to the request handle
+	* @access public
+	*/
+	public function &getRequest() {
+		$content = new APIRequest($this->url);
+		$content->setCookieFile($this->cookiefile);
+		$content->addToGetFields("action", "query");
+		$content->addToGetFields("format", "xml");
+		$content->addToGetFields("prop", "revisions");
+		$content->addToGetFields("rvprop", "content");
+		$content->addToGetFields("rvslots", "*");
+		$content->addToPostFields("titles", $this->titles);
+		return $content->getRequest();
 	}
 }
 ?>
