@@ -14,6 +14,12 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 * @method SimpleXMLElement delete(String $title, String $reason)
 * @method SimpleXMLElement edit(String $page, String $content, String $summary, String $isbot, String $isminor)
 * @method Parsetree expandTemplates(String $content)
+* @method Generator|Array expandTemplatesFromTitles(Array $titles)
+* @method Generator|Array expandTemplatesFromBacklinks(Array $backlinks)
+* @method Generator|Array expandTemplatesFromCategories(Array $categories)
+* @method Generator|Array expandTemplatesFromLinklists(Array $linklists)
+* @method Generator|Array expandTemplatesFromNamespaces(Array $namespaces)
+* @method Generator|Array expandTemplatesFromTransclusions(Array $transclusions)
 * @method String expandWikitext(String $text, String $title)
 * @method Generator|String getAllpages(String $namespace, String $filter, String $limit, String $continue)
 * @method Generator|Array getAllpagesContents(String $namespace, String $filter, String $limit)
@@ -121,9 +127,139 @@ class Bot extends Request {
 	* @access public
 	*/
 	public function expandTemplates(String $content) {
-		$parsetree = new Parsetree($this->url, $content);
+		$parsetree = new Parsetree($this->url);
 		$parsetree->setCookieFile($this->cookiefile);
+		$parsetree->setContent($content);
 		return $parsetree;
+	}
+	
+	/**
+	* handler for expanding templates from (multiple) page titles
+	*
+	* @param Array $titles     an array of the titles that should be expanded
+	* @return Generator|Array  an array containing the page title and the template that is used on that page
+	* @access public
+	*/
+	public function expandTemplatesFromTitles(Array $titles) {
+		$requester = new APIMultiRequest();
+		
+		foreach($titles as $title) {
+			$parsetree = new Parsetree($this->url);
+			$parsetree->setCookieFile($this->cookiefile);
+			$parsetree->setTitle($title);
+			$requester->addRequest($parsetree->getRequest());
+		}
+		
+		$index = 0;
+		
+		foreach($requester->execute() as $queryResult) {
+			$index++;
+			
+			$parsetree = new Parsetree($this->url);
+			$parsetree->setExpandedContent((String)$queryResult->parse->parsetree);
+			foreach($parsetree->match() as $parser) {
+				yield ["title" => (String)$queryResult->parse["title"], "template" => $parser->parse()];
+			}
+			
+			if($index % 5000 === 0) {
+				sleep(30);
+			}
+		}
+	}
+	
+	/**
+	* handler for expanding templates from (multiple) backlinks
+	*
+	* @param Array $backlinks  an array of backlinks
+	* @return Generator|Array  an array containing the page title and the template that is used on that page
+	* @access public
+	*/
+	public function expandTemplatesFromBacklinks(Array $backlinks) {
+		$titles = array();
+		
+		foreach($backlinks as $backlink) {
+			foreach($this->getBacklinks($backlink) as $page) {
+				array_push($titles, $page);
+			}
+		}
+		
+		yield from $this->expandTemplatesFromTitles($titles);
+	}
+	
+	/**
+	* handler for expanding templates from (multiple) categories
+	*
+	* @param Array $categories  an array of categories
+	* @return Generator|Array   an array containing the page title and the template that is used on that page
+	* @access public
+	*/
+	public function expandTemplatesFromCategories(Array $categories) {
+		$titles = array();
+		
+		foreach($categories as $categorie) {
+			foreach($this->getCategoryMembers($categorie) as $page) {
+				array_push($titles, $page);
+			}
+		}
+		
+		yield from $this->expandTemplatesFromTitles($titles);
+	}
+	
+	/**
+	* handler for expanding templates from (multiple) linklists
+	*
+	* @param Array $linklists  an array of linklists
+	* @return Generator|Array  an array containing the page title and the template that is used on that page
+	* @access public
+	*/
+	public function expandTemplatesFromLinklists(Array $linklists) {
+		$titles = array();
+		
+		foreach($linklists as $linklist) {
+			foreach($this->getLinklist($linklist) as $page) {
+				array_push($titles, $page);
+			}
+		}
+		
+		yield from $this->expandTemplatesFromTitles($titles);
+	}
+	
+	/**
+	* handler for expanding templates from (multiple) namespaces
+	*
+	* @param Array $namespaces  an array of namespaces
+	* @return Generator|Array   an array containing the page title and the template that is used on that page
+	* @access public
+	*/
+	public function expandTemplatesFromNamespaces(Array $namespaces) {
+		$titles = array();
+		
+		foreach($namespaces as $namespace) {
+			foreach($this->getAllpages($namespace, "nonredirects") as $page) {
+				array_push($titles, $page);
+			}
+		}
+		
+		yield from $this->expandTemplatesFromTitles($titles);
+	}
+	
+	/**
+	* handler for expanding templates from (multiple) transcluded pages
+	*
+	* @param Array $transclusions  an array of transcluded pages
+	* @return Generator|Array      an array containing the page title and the template that is used on that page
+	* @access public
+	*/
+	public function expandTemplatesFromTransclusions(Array $transclusions) {
+		$titles = array();
+		
+		foreach($transclusions as $transclusion) {
+			foreach($this->getTransclusions($transclusion) as $page) {
+				array_push($titles, $page);
+			}
+		}
+		
+		yield from $this->expandTemplatesFromTitles($titles);
 	}
 	
 	/**

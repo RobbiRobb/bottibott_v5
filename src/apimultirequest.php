@@ -60,32 +60,41 @@ class APIMultiRequest {
 	* @access public
 	*/
 	public function execute() {
-		$requestHandler = curl_multi_init();
-		
-		foreach($this->requests as $request) {
-			curl_multi_add_handle($requestHandler, $request);
-		}
-		
-		$active = null;
-		do {
-			$execCode = curl_multi_exec($requestHandler, $active);
-		} while($execCode == CURLM_CALL_MULTI_PERFORM);
-
-		while($active && $execCode == CURLM_OK) {
-			if(curl_multi_select($requestHandler) != -1) {
-				do {
-					$execCode = curl_multi_exec($requestHandler, $active);
-				} while($execCode == CURLM_CALL_MULTI_PERFORM);
+		while(!empty($this->requests)) {
+			$requests = array_slice($this->requests, 0, 500);
+			$this->requests = array_splice($this->requests, 500);
+			
+			$requestHandler = curl_multi_init();
+			
+			foreach($requests as $request) {
+				curl_multi_add_handle($requestHandler, $request);
 			}
-		}
-		
-		foreach($this->requests as $request) {
-			yield simplexml_load_string(curl_multi_getcontent($request));
-			curl_multi_remove_handle($requestHandler, $request);
-			curl_close($request);
-		}
+			
+			$active = null;
+			do {
+				$execCode = curl_multi_exec($requestHandler, $active);
+			} while($execCode == CURLM_CALL_MULTI_PERFORM);
 
-		curl_multi_close($requestHandler);
+			while($active && $execCode == CURLM_OK) {
+				if(curl_multi_select($requestHandler) != -1) {
+					do {
+						$execCode = curl_multi_exec($requestHandler, $active);
+					} while($execCode == CURLM_CALL_MULTI_PERFORM);
+				}
+			}
+			
+			foreach($requests as $request) {
+				$return = @simplexml_load_string(curl_multi_getcontent($request));
+				if($return === false) {
+					$return = @simplexml_load_string(curl_exec(curl_copy_handle($request)));
+				}
+				yield $return;
+				curl_multi_remove_handle($requestHandler, $request);
+				curl_close($request);
+			}
+
+			curl_multi_close($requestHandler);
+		}
 	}
 }
 ?>

@@ -180,6 +180,26 @@ class Wikitextparser extends Request {
 	}
 	
 	/**
+	* getter for an API-request of a wikitextparser from a page title
+	*
+	* @param String $section  only parse a given section of a page
+	* @return APIRequest      a reference to the request handle
+	*/
+	public function &getParseFromTitleRequest(String $section = "") {
+		$text = new APIRequest($this->url);
+		$text->setCookieFile($this->cookiefile);
+		$text->addToGetFields("action", "parse");
+		$text->addToGetFields("format", "xml");
+		$text->addToGetFields("page", $this->title);
+		$text->addToGetFields("prop", "text");
+		$text->addToGetFields("disablelimitreport", "1");
+		$text->addToGetFields("disableeditsection", "1");
+		$text->addToGetFields("preview", "1");
+		if(!empty($section) || $section === "0") { $text->addToGetFields("section", $section); } // MediaWiki doesn't like set but empty section
+		return $text->getRequest();
+	}
+	
+	/**
 	* parse the given text in the context of the given page
 	*
 	* @return Wikitextparser  itself to allow the chaining of calls
