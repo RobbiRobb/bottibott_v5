@@ -98,7 +98,7 @@ class TemplateRebuilder {
 	public function getParams() {
 		if(is_array($this->template)) {
 			foreach($this->template as $template) {
-				yield $template;
+				yield $template["name"] => $template["value"];
 			}
 		} else {
 			yield $this->template;
@@ -194,12 +194,12 @@ class TemplateRebuilder {
 		
 		$newTemplate = array();
 		
-		foreach($this->getParams() as $param) {
-			if(trim($param["name"]) === $before) {
+		foreach($this->getParams() as $param => $paramValue) {
+			if(trim($param) === $before) {
 				$newTemplate[trim($newParam)] = array("name" => $newParam, "value" => $value);
-				$newTemplate[trim($param["name"])] = array("name" => $param["name"], "value" => $param["value"]);
+				$newTemplate[trim($param)] = array("name" => $param, "value" => $paramValue);
 			} else {
-				$newTemplate[trim($param["name"])] = array("name" => $param["name"], "value" => $param["value"]);
+				$newTemplate[trim($param)] = array("name" => $param, "value" => $paramValue);
 			}
 		}
 		
@@ -221,17 +221,17 @@ class TemplateRebuilder {
 	*/
 	public function addParamAfter(String $after, String $newParam, String $value) {
 		if(!$this->contains($after)) {
-			return $this->addParam($param, $value);
+			return $this->addParam($newParam, $value);
 		}
 		
 		$newTemplate = array();
 		
-		foreach($this->getParams() as $param) {
-			if(trim($param["name"]) === $after) {
-				$newTemplate[trim($param["name"])] = array("name" => $param["name"], "value" => $param["value"]);
+		foreach($this->getParams() as $param => $paramValue) {
+			if(trim($param) === $after) {
+				$newTemplate[trim($param)] = array("name" => $param, "value" => $paramValue);
 				$newTemplate[trim($newParam)] = array("name" => $newParam, "value" => $value);
 			} else {
-				$newTemplate[trim($param["name"])] = array("name" => $param["name"], "value" => $param["value"]);
+				$newTemplate[trim($param)] = array("name" => $param, "value" => $paramValue);
 			}
 		}
 		
@@ -269,11 +269,11 @@ class TemplateRebuilder {
 		
 		$newTemplate = array();
 		
-		foreach($this->getParams() as $param) {
-			if(trim($param["name"]) === $oldName) {
-				$newTemplate[trim($param["name"])] = array("name" => $newName, "value" => $param["value"]);
+		foreach($this->getParams() as $param => $paramValue) {
+			if(trim($param) === $oldName) {
+				$newTemplate[trim($newName)] = array("name" => $newName, "value" => $paramValue);
 			} else {
-				$newTemplate[trim($param["name"])] = array("name" => $param["name"], "value" => $param["value"]);
+				$newTemplate[trim($param)] = array("name" => $param, "value" => $paramValue);
 			}
 		}
 		

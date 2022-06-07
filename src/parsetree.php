@@ -117,7 +117,7 @@ class Parsetree extends Request {
 		$parsetree->addToGetFields("prop", "parsetree");
 		$parsetree->addToGetFields("format", "xml");
 		$parsetree->addToPostFields("text", $this->content);
-		$this->expandedContent = (String)$parsetree->execute()->expandtemplates->parsetree;
+		$this->expandedContent = (String)$parsetree->execute()->parse->parsetree;
 		return $this->match();
 	}
 	

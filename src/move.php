@@ -13,6 +13,7 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 * @method void setNoredirect(String $noredirect)
 * @method void setMovetalk(String $movetalk)
 * @method SimpleXMLElement execute(String $token)
+* @method CurlHandle getRequest(String $token)
 */
 class Move extends Request {
 	private String $from;
@@ -111,6 +112,27 @@ class Move extends Request {
 		$move->addToGetFields("movetalk", $this->movetalk);
 		$move->addToPostFields("token", $token);
 		return $move->execute();
+	}
+	
+	/**
+	* executor for the API-request
+	*
+	* @param String $token  the token required for editing a page
+	* @return CurlHandle    a reference to the request handle
+	* @access public
+	*/
+	public function &getRequest(String $token) {
+		$move = new APIRequest($this->url);
+		$move->setCookieFile($this->cookiefile);
+		$move->addToGetFields("action", "move");
+		$move->addToGetFields("format", "xml");
+		$move->addToGetFields("from", $this->from);
+		$move->addToGetFields("to", $this->to);
+		$move->addToGetFields("reason", $this->reason);
+		$move->addToGetFields("noredirect", $this->noredirect);
+		$move->addToGetFields("movetalk", $this->movetalk);
+		$move->addToPostFields("token", $token);
+		return $move->getRequest();
 	}
 }
 ?>

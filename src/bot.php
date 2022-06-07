@@ -29,13 +29,15 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 * @method Generator|String getCategoryMembers(String $category, String $limit, Array $types, String $continue)
 * @method Generator|Array getCategoryMembersContents(String $category, String $limit, Array $types)
 * @method Generator|Array getContent(String $articles)
-* @method SimpleXMLElement getContentRequest(String $articles)
+* @method CurlHandle getContentRequest(String $articles)
+* @method CurlHandle getEditRequest(String $page, String $content, String $summary, String $isbot, String $isminor)
 * @method Generator|Array getFileusage(String $files, String $limit, String $namespace, String $continue)
 * @method Generator|Array getLanglinks(String $titles, String $lang, String $limit)
 * @method Generator|String getLinklist(String $link, String $limit)
 * @method Generator|Array getLinklistContents(String $link, String $limit)
 * @method Generator|Array getLinks(String $titles, String $targets, String $namespace, String $limit, String $continue)
 * @method Generator|Array getLogevents(String $action, String $user, String $namespace, String $limit, String $continue)
+* @method CurlHandle getMoveRequest(String $from, String $to, String $reason, String $noredirect, String $movetalk)
 * @method Generator|Array getRevisions(String $revids)
 * @method Generator|String getRevisionUsers(String $page, String $limit, String $continue)
 * @method Generator|String getSystemEditCount(String $users)
@@ -56,6 +58,8 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 */
 class Bot extends Request {
 	private bool $loggedIn = false;
+	private array $tokens = array();
+	private array $userrights = array();
 	
 	/**
 	* constructor for class Bot
@@ -158,7 +162,7 @@ class Bot extends Request {
 			$parsetree = new Parsetree($this->url);
 			$parsetree->setExpandedContent((String)$queryResult->parse->parsetree);
 			foreach($parsetree->match() as $parser) {
-				yield ["title" => (String)$queryResult->parse["title"], "template" => $parser->parse()];
+				yield (String)$queryResult->parse["title"] => $parser->parse();
 			}
 			
 			if($index % 5000 === 0) {
@@ -335,7 +339,7 @@ class Bot extends Request {
 					if(!isset($content->revisions->rev)) {
 						yield from $this->getContent($content["title"]);
 					} else {
-						yield ["title" => (String)$content["title"], "content" => (String)$content->revisions->rev->slots->slot];
+						yield (String)$content["title"] => (String)$content->revisions->rev->slots->slot;
 					}
 				}
 			}
@@ -421,7 +425,7 @@ class Bot extends Request {
 					if(!isset($content->revisions->rev)) {
 						yield from $this->getContent($content["title"]);
 					} else {
-						yield ["title" => (String)$content["title"], "content" => (String)$content->revisions->rev->slots->slot];
+						yield (String)$content["title"] => (String)$content->revisions->rev->slots->slot;
 					}
 				}
 			}
@@ -487,7 +491,7 @@ class Bot extends Request {
 					if(!isset($content->revisions->rev)) {
 						yield from $this->getContent($content["title"]);
 					} else {
-						yield ["title" => (String)$content["title"], "content" => (String)$content->revisions->rev->slots->slot];
+						yield (String)$content["title"] => (String)$content->revisions->rev->slots->slot;
 					}
 				}
 			}
@@ -511,7 +515,7 @@ class Bot extends Request {
 				if(!isset($content->revisions->rev)) {
 					yield from $this->getContent($content["title"]);
 				} else {
-					yield ["title" => (String)$content["title"], "content" => (String)$content->revisions->rev->slots->slot];
+					yield (String)$content["title"] => (String)$content->revisions->rev->slots->slot;
 				}
 			}
 		}
@@ -520,14 +524,49 @@ class Bot extends Request {
 	/**
 	* getter for the request to the content of a page
 	*
-	* @param String $titles    the titles of the pages for which the content should be queried
-	* @return CurlHandle  a reference to the request handle
+	* @param String $titles  the titles of the pages for which the content should be queried
+	* @return CurlHandle     a reference to the request handle
 	* @access public
 	*/
 	public function &getContentRequest(String $articles) {
 		$content = new Content($this->url, $articles);
 		$content->setCookieFile($this->cookiefile);
 		return $content->getRequest();
+	}
+	
+	/**
+	* getter for the request of an edit
+	*
+	* @param String $page     the page that will be edited
+	* @param String $content  the new content of the page
+	* @param String $summary  the summary of the edit
+	* @param String $isbot    if the account editing is a bot or not
+	* @param String $isminor  if the edit should be marked as minor or not
+	* @return CurlHandle      a reference to the request handle
+	* @access public
+	*/
+	public function &getEditRequest(String $page, String $content, String $summary = "", String $isbot = "1", String $isminor = "1") {
+		$edit = new Edit($this->url, $page, $content, $summary, $isbot, $isminor);
+		$edit->setCookieFile($this->cookiefile);
+		return $edit->getRequest($this->getToken("csrf"));
+	}
+	
+	
+	/**
+	* generator for the url of an image from a given title
+	*
+	* @param String $titles     the titles of the files for which the urls should be queried
+	* @return Generator|String  the title and the url of a file
+	* @access public
+	*/
+	public function getFileurl(String $files) {
+		$fileurls = new Fileurl($this->url, $files);
+		$fileurls->setCookieFile($this->cookiefile);
+		$queryResult = $fileurls->execute();
+		
+		foreach($queryResult->query->pages->page as $page) {
+			yield explode(":", (String)$page["title"])[1] => (String)$page->imageinfo->ii["url"];
+		}
 	}
 	
 	/**
@@ -666,6 +705,23 @@ class Bot extends Request {
 	}
 	
 	/**
+	* getter for the request of a page move
+	*
+	* @param String $from        the old name of the page
+	* @param String $to          the new name of the page
+	* @param String $reason      the reason displayed why the page was moved
+	* @param String $noredirect  whether the page should be moved without redirect or not
+	* @param String $movetalk    whether the talk page of the page should be move as well or not
+	* @return CurlHandle         a reference to the request handle
+	* @access public
+	*/
+	public function &getMoveRequest(String $from, String $to, String $reason = "", String $noredirect = "1", String $movetalk = "1") {
+		$move = new Move($this->url, $from, $to, $reason, $noredirect, $movetalk);
+		$move->setCookieFile($this->cookiefile);
+		return $move->getRequest($this->getToken("csrf"));
+	}
+	
+	/**
 	* generator for information on revisions
 	*
 	* @param String $revids    the revids that should be queried
@@ -748,9 +804,12 @@ class Bot extends Request {
 	* @access public
 	*/
 	public function getToken(String $type) {
-		$token = new Token($this->url, $type);
-		$token->setCookieFile($this->cookiefile);
-		return $token->execute();
+		if(!isset($this->tokens[$type])) {
+			$token = new Token($this->url, $type);
+			$token->setCookieFile($this->cookiefile);
+			$this->tokens[$type] = $token->execute();
+		}
+		return $this->tokens[$type];
 	}
 	
 	/**
@@ -810,7 +869,7 @@ class Bot extends Request {
 					if(!isset($content->revisions->rev)) {
 						yield from $this->getContent($content["title"]);
 					} else {
-						yield ["title" => (String)$content["title"], "content" => (String)$content->revisions->rev->slots->slot];
+						yield (String)$content["title"] => (String)$content->revisions->rev->slots->slot;
 					}
 				}
 			}
@@ -854,16 +913,16 @@ class Bot extends Request {
 	* @access public
 	*/
 	public function hasRight(String $right) {
-		$userrights = new Userrights($this->url);
-		$userrights->setCookieFile($this->cookiefile);
-		$queryResult = $userrights->execute();
-		
-		foreach($queryResult->query->userinfo->rights->r as $userright) {
-			if((String)$userright === $right) {
-				return true;
+		if(empty($this->userrights)) {
+			$userrights = new Userrights($this->url);
+			$userrights->setCookieFile($this->cookiefile);
+			$queryResult = $userrights->execute();
+			
+			foreach($queryResult->query->userinfo->rights->r as $userright) {
+				$this->userrights[$userright->__toString()] = 1;
 			}
 		}
-		return false;
+		return isset($this->userrights[trim($right)]);
 	}
 	
 	/**
@@ -936,7 +995,6 @@ class Bot extends Request {
 		$move->setCookieFile($this->cookiefile);
 		return $move->execute($this->getToken("csrf"));
 	}
-	
 	
 	/**
 	* parsing the text of an article or free text

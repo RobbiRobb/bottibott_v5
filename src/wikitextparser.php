@@ -18,6 +18,7 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 * @method Generator|mixed getSections(String $section)
 * @method mixed getSectionFromName(String $name)
 * @method Wikitextparser parseFromTitle(String $section)
+* @method CurlHandle getParseFromTitleRequest(String $section)
 * @method Wikitextparser parseText()
 */
 class Wikitextparser extends Request {
@@ -183,7 +184,7 @@ class Wikitextparser extends Request {
 	* getter for an API-request of a wikitextparser from a page title
 	*
 	* @param String $section  only parse a given section of a page
-	* @return APIRequest      a reference to the request handle
+	* @return CurlHandle      a reference to the request handle
 	*/
 	public function &getParseFromTitleRequest(String $section = "") {
 		$text = new APIRequest($this->url);

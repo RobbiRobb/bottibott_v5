@@ -12,6 +12,7 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 * @method void setIsBot(String $isbot)
 * @method void setIsMinor(String $isminor)
 * @method SimpleXMLElement execute()
+* @method CurlHandle getRequest(String $token)
 */
 class Edit extends Request {
 	private String $page;
@@ -110,6 +111,27 @@ class Edit extends Request {
 		$edit->addToPostFields("minor", $this->isminor);
 		$edit->addToPostFields("token", $token);
 		return $edit->execute();
+	}
+	
+	/**
+	* getter for an API-request of an edit
+	*
+	* @param String $token  the token required for editing a page
+	* @return CurlHandle    a reference to the request handle
+	* @access public
+	*/
+	public function &getRequest(String $token) {
+		$edit = new APIRequest($this->url);
+		$edit->setCookieFile($this->cookiefile);
+		$edit->addToGetFields("action", "edit");
+		$edit->addToGetFields("format", "xml");
+		$edit->addToGetFields("title", $this->page);
+		$edit->addToPostFields("text", $this->content);
+		$edit->addToPostFields("summary", $this->summary);
+		$edit->addToPostFields("bot", $this->isbot);
+		$edit->addToPostFields("minor", $this->isminor);
+		$edit->addToPostFields("token", $token);
+		return $edit->getRequest();
 	}
 }
 ?>
