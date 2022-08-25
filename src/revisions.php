@@ -8,6 +8,7 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 *
 * @method void setRevids(String $revids)
 * @method SimpleXMLElement execute()
+* @method CurlHandle getRequest()
 */
 class Revisions extends Request {
 	private String $revids;
@@ -50,6 +51,23 @@ class Revisions extends Request {
 		$revisions->addToGetFields("format", "xml");
 		$revisions->addToPostFields("revids", $this->revids);
 		return $revisions->execute();
+	}
+	
+	/**
+	* getter for an API-request of revids
+	*
+	* @return CurlHandle  a reference to the request handle
+	* @access public
+	*/
+	public function &getRequest() {
+		$revisions = new APIRequest($this->url);
+		$revisions->setCookieFile($this->cookiefile);
+		$revisions->addToGetFields("action", "query");
+		$revisions->addToGetFields("prop", "revisions");
+		$revisions->addToGetFields("rvprop", "user|ids");
+		$revisions->addToGetFields("format", "xml");
+		$revisions->addToPostFields("revids", $this->revids);
+		return $revisions->getRequest();
 	}
 }
 ?>

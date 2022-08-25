@@ -289,55 +289,57 @@ class TemplateRebuilder {
 	* @access public
 	*/
 	public function rebuild() {
-		if(gettype($this->template) == "string") {
+		if(empty($this->title)) {
 			return $this->template;
 		} else {
 			$s = "{{" . $this->getTitle();
-			foreach($this->template as $param) {
-				if(is_array($param["value"])) {
-					if(is_numeric($param["name"])) {
-						if(trim($param["name"]) == 1) {
-							$s .= "|";
+			if(!empty($this->template)) {
+				foreach($this->template as $param) {
+					if(is_array($param["value"])) {
+						if(is_numeric($param["name"])) {
+							if(trim($param["name"]) == 1) {
+								$s .= "|";
+							} else {
+								for($i = 2; $i <= $param["name"]; $i++) {
+									if(!isset($this->template[$i])) {
+										$s .= "|".$param["name"]."=";
+										break;
+									} else if($i == trim($param["name"])) {
+										$s .= "|";
+									}
+								}
+							}
 						} else {
-							for($i = 2; $i <= $param["name"]; $i++) {
-								if(!isset($this->template[$i])) {
-									$s .= "|".$param["name"]."=";
-									break;
-								} else if($i == trim($param["name"])) {
-									$s .= "|";
+							$s .= "|".$param["name"]."=";
+						}
+						
+						foreach($param["value"] as $subtemplates) {
+							if(!is_array($subtemplates)) {
+								$s .= $subtemplates;
+							} else {
+								foreach($subtemplates as $subTemplateName => $subTemplateValues) {
+									$templateRebuilder = new TemplateRebuilder((gettype($subTemplateValues) === "string" ? array() : $subTemplateValues), $subTemplateName);
+									$s .= $templateRebuilder->rebuild();
 								}
 							}
 						}
 					} else {
-						$s .= "|".$param["name"]."=";
-					}
-					
-					foreach($param["value"] as $subtemplates) {
-						if(!is_array($subtemplates)) {
-							$s .= $subtemplates;
-						} else {
-							foreach($subtemplates as $subTemplateName => $subTemplateValues) {
-								$templateRebuilder = new TemplateRebuilder((gettype($subTemplateValues) === "string" ? array() : $subTemplateValues), $subTemplateName);
-								$s .= $templateRebuilder->rebuild();
-							}
-						}
-					}
-				} else {
-					if(is_numeric($param["name"])) {
-						if(trim($param["name"]) == 1) {
-							$s .= "|".$param["value"];
-						} else {
-							for($i = 2; $i <= $param["name"]; $i++) {
-								if(!isset($this->template[$i])) {
-									$s .= "|".$param["name"]."=".$param["value"];
-									break;
-								} else if($i == trim($param["name"])) {
-									$s .= "|".$param["value"];
+						if(is_numeric($param["name"])) {
+							if(trim($param["name"]) == 1) {
+								$s .= "|".$param["value"];
+							} else {
+								for($i = 2; $i <= $param["name"]; $i++) {
+									if(!isset($this->template[$i])) {
+										$s .= "|".$param["name"]."=".$param["value"];
+										break;
+									} else if($i == trim($param["name"])) {
+										$s .= "|".$param["value"];
+									}
 								}
 							}
+						} else {
+							$s .= "|".$param["name"]."=".$param["value"];
 						}
-					} else {
-						$s .= "|".$param["name"]."=".$param["value"];
 					}
 				}
 			}

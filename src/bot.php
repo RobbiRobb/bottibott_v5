@@ -26,6 +26,7 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 * @method Generator|Array getAllusers(String $limit, String $continue)
 * @method Generator|String getBacklinks(String $link, String $limit, String $continue)
 * @method Generator|Array getBacklinksContents(String $link, String $limit)
+* @method Generator|Array getCategories(Array $pages, String $limit, Array $filter)
 * @method Generator|String getCategoryMembers(String $category, String $limit, Array $types, String $continue)
 * @method Generator|Array getCategoryMembersContents(String $category, String $limit, Array $types)
 * @method Generator|Array getContent(String $articles)
@@ -429,6 +430,54 @@ class Bot extends Request {
 					}
 				}
 			}
+		}
+	}
+	
+	/**
+	* generator for all categories of given pages
+	*
+	* @param Array $pages      the pages for which the categories should be loaded
+	* @param String $limit     the maximum amount of categories to query
+	* @param Array $filter     an array of categories for which to filter for. Will only return these pages. Can be used to check if a page is in a specific category
+	* @return Generator|Array  an array for each page containing all categories the page is in
+	* @access public
+	*/
+	public function getCategories(Array $pages, String $limit = "max", Array $filter = array()) {
+		$max = $this->hasRight("apihighlimits") ? 500 : 50;
+		if(count($filter) > ($this->hasRight("apihighlimits") ? 500 : 50)) throw new Exception("Filter Array is too large.");
+		
+		$categoriesList = array();
+		
+		while(!empty($pages)) {
+			$toQuery = array_slice($pages, 0, $max);
+			$pages = array_splice($pages, $max);
+			
+			do {
+				$categoriesQuery = new Categories($this->url, $toQuery, $limit, $continue, $filter);
+				$categoriesQuery->setCookieFile($this->cookiefile);
+				$queryResult = $categoriesQuery->execute();
+				
+				foreach($queryResult->query->pages->page as $page) {
+					if(!isset($page->categories)) continue;
+					
+					$pageCategories = array();
+					
+					foreach($page->categories->cl as $category) {
+						array_push($pageCategories, (String)$category["title"]);
+					}
+					if(isset($categoriesList[(String)$page["title"]])) {
+						$categoriesList[(String)$page["title"]] = array_merge($categoriesList[(String)$page["title"]], $pageCategories);
+					} else {
+						$categoriesList[(String)$page["title"]] = $pageCategories;
+					}
+				}
+				
+				$continue = $queryResult->continue["clcontinue"];
+			} while(isset($queryResult->continue["clcontinue"]));
+		}
+		
+		foreach($categoriesList as $page => $pageCategories) {
+			yield $page => $pageCategories;
 		}
 	}
 	
@@ -919,7 +968,7 @@ class Bot extends Request {
 			$queryResult = $userrights->execute();
 			
 			foreach($queryResult->query->userinfo->rights->r as $userright) {
-				$this->userrights[$userright->__toString()] = 1;
+				$this->userrights[(String)$userright] = 1;
 			}
 		}
 		return isset($this->userrights[trim($right)]);
@@ -939,9 +988,9 @@ class Bot extends Request {
 		
 		foreach($queryResult->query->pages->page as $page) {
 			if(isset($queryResult->query->redirects)) {
-				yield ["title" => (String)$queryResult->query->redirects->r["from"], "redirect" => true];
+				yield (String)$queryResult->query->redirects->r["from"] => true;
 			} else {
-				yield ["title" => (String)$page["title"], "redirect" => false];
+				yield (String)$page["title"] => false;
 			}
 		}
 	}
