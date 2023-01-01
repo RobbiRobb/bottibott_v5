@@ -6,14 +6,14 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 *
 * The class Fileusage allows the creation of API-requests for fileusages
 *
-* @method void setFiles(String $files)
+* @method void setFiles(Array $files)
 * @method void setLimit(String $limit)
 * @method void setNamespace(String $namespace)
 * @method void setContinue(String $continue)
 * @method SimpleXMLElement execute()
 */
 class Fileusage extends Request {
-	private String $files;
+	private Array $files;
 	private String $limit;
 	private String $namespace;
 	private String $continue;
@@ -22,13 +22,13 @@ class Fileusage extends Request {
 	* constructor for class Fileusage
 	*
 	* @param String $url        the url to the wiki
-	* @param String $files      the files that will be checked
+	* @param Array $files       the files that will be checked
 	* @param String $limit      the maximum amount of results
 	* @param String $namespace  namespace for filtering queries
 	* @param String $continue   continue for additional queries
 	* @access public
 	*/
-	public function __construct(String $url, String $files, String $limit = "max", String $namespace = "", String $continue = "") {
+	public function __construct(String $url, Array $files, String $limit = "max", String $namespace = "", String $continue = "") {
 		$this->url = $url;
 		$this->files = $files;
 		$this->limit = $limit;
@@ -40,10 +40,10 @@ class Fileusage extends Request {
 	/**
 	* setter for the file names
 	*
-	* @param String $files  the files that should be set
+	* @param Array $files  the files that should be set
 	* @access public
 	*/
-	public function setFiles(String $files) {
+	public function setFiles(Array $files) {
 		$this->files = $files;
 	}
 	
@@ -92,7 +92,7 @@ class Fileusage extends Request {
 		$fileusage->addToGetFields("fulimit", $this->limit);
 		if(!empty($this->namespace) || $this->namespace === "0") { $fileusage->addToGetFields("funamespace", $this->namespace); } // MediaWiki doesn't like an empty namespace
 		if(!empty($this->continue)) { $fileusage->addToGetFields("fucontinue", $this->continue); } // MediaWiki doesn't like an empty continue
-		$fileusage->addToPostFields("titles", $this->files);
+		$fileusage->addToPostFields("titles", implode("|", $this->files));
 		return $fileusage->execute();
 	}
 }

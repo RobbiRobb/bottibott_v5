@@ -13,6 +13,7 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 * @method bool isLoggedIn()
 * @method SimpleXMLElement delete(String $title, String $reason)
 * @method SimpleXMLElement edit(String $page, String $content, String $summary, String $isbot, String $isminor)
+* @method boolean exists(String $page)
 * @method Parsetree expandTemplates(String $content)
 * @method Generator|Array expandTemplatesFromTitles(Array $titles)
 * @method Generator|Array expandTemplatesFromBacklinks(Array $backlinks)
@@ -32,7 +33,7 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 * @method Generator|Array getContent(String $articles)
 * @method CurlHandle getContentRequest(String $articles)
 * @method CurlHandle getEditRequest(String $page, String $content, String $summary, String $isbot, String $isminor)
-* @method Generator|Array getFileusage(String $files, String $limit, String $namespace, String $continue)
+* @method Generator|Array getFileusage(Array $files, String $namespace, String $limit)
 * @method Generator|Array getLanglinks(String $titles, String $lang, String $limit)
 * @method Generator|String getLinklist(String $link, String $limit)
 * @method Generator|Array getLinklistContents(String $link, String $limit)
@@ -122,6 +123,17 @@ class Bot extends Request {
 		$edit = new Edit($this->url, $page, $content, $summary, $isbot, $isminor);
 		$edit->setCookieFile($this->cookiefile);
 		return $edit->execute($this->getToken("csrf"));
+	}
+	
+	/**
+	* check if a page exists
+	*
+	* @param String $page  the page to check
+	* @return boolean      wether the page exists or not
+	* @access public
+	*/
+	public function exists(String $page) {
+		return $this->getContent($page)->current() !== NULL;
 	}
 	
 	/**
@@ -550,8 +562,8 @@ class Bot extends Request {
 	/**
 	* getter for the content of a page
 	*
-	* @param String $titles    the titles of the pages for which the content should be queried
-	* @return Generator|Array  an array containing page title and content of this page
+	* @param String $titles     the titles of the pages for which the content should be queried
+	* @return Generator|String  the title and the content of the page. NULL if page does not exist
 	* @access public
 	*/
 	public function getContent(String $articles) {
@@ -561,6 +573,10 @@ class Bot extends Request {
 		
 		if(isset($queryResult->query)) {
 			foreach($queryResult->query->pages->page as $content) {
+				if(isset($content["missing"])) {
+					yield (String)$content["title"] => NULL;
+					continue;
+				}
 				if(!isset($content->revisions->rev)) {
 					yield from $this->getContent($content["title"]);
 				} else {
@@ -621,28 +637,41 @@ class Bot extends Request {
 	/**
 	* generator for all pages using images
 	*
-	* @param String $files      the files that will be checked
+	* @param Array $files       the files that will be checked
 	* @param String $limit      the maximum amount of results
 	* @param String $namespace  the namespace for filtering queries
-	* @param String $continue   continue for additional queries
-	* @return Generator|Array   an array containing the filename and the page it is used on
+	* @return Generator|Array   an array for each file, containing the list of all pages transcluding the file. May be empty
 	* @access public
 	*/
-	public function getFileusage(String $files, String $limit = "max", String $namespace = "", String $continue = "") {
-		$fileusages = new Fileusage($this->url, $files, $limit, $namespace, $continue);
-		$fileusages->setCookieFile($this->cookiefile);
-		$queryResult = $fileusages->execute();
+	public function getFileusage(Array $files, String $namespace = "", String $limit = "max") {
+		$fileTransclusions = array();
+		$max = $this->hasRight("apihighlimits") ? 500 : 50;
 		
-		foreach($queryResult->query->pages->page as $page) {
-			if(isset($page->fileusage)) {
-				foreach($page->fileusage->fu as $fileusage) {
-					yield ["title" => (String)$fileusage["title"], "file" => (String)$page["title"]];
+		do {
+			$continue = "";
+			$queryFiles = array_slice($files, 0, $max);
+			$files = array_splice($files, $max);
+			
+			do {
+				$fileusages = new Fileusage($this->url, $queryFiles, $limit, $namespace, $continue);
+				$fileusages->setCookieFile($this->cookiefile);
+				$queryResult = $fileusages->execute();
+				
+				foreach($queryResult->query->pages->page as $page) {
+					if(!isset($fileTransclusions[(String)$page["title"]])) $fileTransclusions[(String)$page["title"]] = array();
+					if(isset($page->fileusage)) {
+						foreach($page->fileusage->fu as $fileusage) {
+							array_push($fileTransclusions[(String)$page["title"]], (String)$fileusage["title"]);
+						}
+					}
 				}
-			}
-		}
+				
+				$continue = (String)$queryResult->continue["fucontinue"];
+			} while(isset($queryResult->continue));
+		} while(!empty($files));
 		
-		if(isset($queryResult->continue["fucontinue"])) {
-			yield from $this->getFileusage($files, $limit, $namespace, $queryResult->continue["fucontinue"]);
+		foreach($fileTransclusions as $file => $transclusions) {
+			yield $file => $transclusions;
 		}
 	}
 	
