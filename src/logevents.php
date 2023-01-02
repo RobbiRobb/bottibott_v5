@@ -100,6 +100,7 @@ class Logevents extends Request {
 	public function execute() {
 		$logevents = new APIRequest($this->url);
 		$logevents->setCookieFile($this->cookiefile);
+		$logevents->setLogger($this->logger);
 		$logevents->addToGetFields("action", "query");
 		$logevents->addToGetFields("list", "logevents");
 		$logevents->addToGetFields("leprop", "user|type|title");

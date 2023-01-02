@@ -45,6 +45,7 @@ class Systemeditcount extends Request {
 	public function execute() {
 		$editcount = new APIRequest($this->url);
 		$editcount->setCookieFile($this->cookiefile);
+		$editcount->setLogger($this->logger);
 		$editcount->addToGetFields("action", "query");
 		$editcount->addToGetFields("list", "users");
 		$editcount->addToGetFields("usprop", "editcount");

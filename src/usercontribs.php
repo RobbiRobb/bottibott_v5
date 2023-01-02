@@ -73,6 +73,7 @@ class Usercontribs extends Request {
 	public function execute() {
 		$usercontribs = new APIRequest($this->url);
 		$usercontribs->setCookieFile($this->cookiefile);
+		$usercontribs->setLogger($this->logger);
 		$usercontribs->addToGetFields("action", "query");
 		$usercontribs->addToGetFields("list", "usercontribs");
 		$usercontribs->addToGetFields("ucprop", "timestamp|sizediff|title");

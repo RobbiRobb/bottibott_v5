@@ -113,6 +113,7 @@ class Parsetree extends Request {
 	public function expand() {
 		$parsetree = new APIRequest($this->url);
 		$parsetree->setCookieFile($this->cookiefile);
+		$parsetree->setLogger($this->logger);
 		$parsetree->addToGetFields("action", "parse");
 		$parsetree->addToGetFields("prop", "parsetree");
 		$parsetree->addToGetFields("format", "xml");

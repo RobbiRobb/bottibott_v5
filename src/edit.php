@@ -102,6 +102,7 @@ class Edit extends Request {
 	public function execute(String $token) {
 		$edit = new APIRequest($this->url);
 		$edit->setCookieFile($this->cookiefile);
+		$edit->setLogger($this->logger);
 		$edit->addToGetFields("action", "edit");
 		$edit->addToGetFields("format", "xml");
 		$edit->addToGetFields("title", $this->page);

@@ -58,6 +58,7 @@ class Allusers extends Request {
 	public function execute() {
 		$allusers = new APIRequest($this->url);
 		$allusers->setCookieFile($this->cookiefile);
+		$allusers->setLogger($this->logger);
 		$allusers->addToGetFields("action", "query");
 		$allusers->addToGetFields("list", "allusers");
 		$allusers->addToGetFields("format", "xml");

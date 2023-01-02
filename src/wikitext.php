@@ -60,6 +60,7 @@ class Wikitext extends Request {
 	public function execute() {
 		$wikitext = new APIRequest($this->url);
 		$wikitext->setCookieFile($this->cookiefile);
+		$wikitext->setLogger($this->logger);
 		$wikitext->addToGetFields("action", "expandtemplates");
 		$wikitext->addToGetFields("format", "xml");
 		$wikitext->addToGetFields("prop", "wikitext");

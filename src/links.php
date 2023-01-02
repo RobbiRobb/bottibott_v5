@@ -100,6 +100,7 @@ class Links extends Request {
 	public function execute() {
 		$links = new APIRequest($this->url);
 		$links->setCookieFile($this->cookiefile);
+		$links->setLogger($this->logger);
 		$links->addToGetFields("action", "query");
 		$links->addToGetFields("prop", "links");
 		$links->addToGetFields("format", "xml");

@@ -33,6 +33,7 @@ class Content extends Request {
 	public function execute() {
 		$content = new APIRequest($this->url);
 		$content->setCookieFile($this->cookiefile);
+		$content->setLogger($this->logger);
 		$content->addToGetFields("action", "query");
 		$content->addToGetFields("format", "xml");
 		$content->addToGetFields("prop", "revisions");

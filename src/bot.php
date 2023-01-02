@@ -11,6 +11,8 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 *
 * @method String getUrl()
 * @method bool isLoggedIn()
+* @method void startLogging()
+* @method void stopLogging()
 * @method SimpleXMLElement delete(String $title, String $reason)
 * @method SimpleXMLElement edit(String $page, String $content, String $summary, String $isbot, String $isminor)
 * @method boolean exists(String $page)
@@ -69,9 +71,10 @@ class Bot extends Request {
 	* @param String $url  the url to the wiki
 	* @access public
 	*/
-	public function __construct(String $url) {
+	public function __construct(String $url, String $logfile = "latest.log") {
 		$this->url = $url;
 		$this->cookiefile = "cookies.txt";
+		$this->logger = new Logger($logfile);
 	}
 	
 	/**
@@ -95,6 +98,24 @@ class Bot extends Request {
 	}
 	
 	/**
+	* start logging of requests
+	*
+	* @access public
+	*/
+	public function startLogging() {
+		$this->logger->startLogging();
+	}
+	
+	/**
+	* stop logging of requests
+	*
+	* @access public
+	*/
+	public function stopLogging() {
+		$this->logger->stopLogging();
+	}
+	
+	/**
 	* deleting a page
 	*
 	* @param String $title      the title of the page that should be deleted
@@ -105,6 +126,7 @@ class Bot extends Request {
 	public function delete(String $title, String $reason = "") {
 		$delete = new Delete($this->url, $title, $reason);
 		$delete->setCookieFile($this->cookiefile);
+		$delete->setLogger($this->logger);
 		return $delete->execute($this->getToken("csrf"));
 	}
 	
@@ -122,6 +144,7 @@ class Bot extends Request {
 	public function edit(String $page, String $content, String $summary = "", String $isbot = "1", String $isminor = "1") {
 		$edit = new Edit($this->url, $page, $content, $summary, $isbot, $isminor);
 		$edit->setCookieFile($this->cookiefile);
+		$edit->setLogger($this->logger);
 		return $edit->execute($this->getToken("csrf"));
 	}
 	
@@ -146,6 +169,7 @@ class Bot extends Request {
 	public function expandTemplates(String $content) {
 		$parsetree = new Parsetree($this->url);
 		$parsetree->setCookieFile($this->cookiefile);
+		$parsetree->setLogger($this->logger);
 		$parsetree->setContent($content);
 		return $parsetree;
 	}
@@ -290,6 +314,7 @@ class Bot extends Request {
 	public function expandWikitext(String $text, String $title = "") {
 		$wikitext = new Wikitext($this->url, $text, $title);
 		$wikitext->setCookieFile($this->cookiefile);
+		$wikitext->setLogger($this->logger);
 		return $wikitext->execute();
 	}
 	
@@ -306,6 +331,7 @@ class Bot extends Request {
 	public function getAllpages(String $namespace, String $filter = "all", String $limit = "max", String $continue = "") {
 		$allpages = new Allpages($this->url, $namespace, $limit, $filter, $continue);
 		$allpages->setCookieFile($this->cookiefile);
+		$allpages->setLogger($this->logger);
 		$queryResult = $allpages->execute();
 		
 		foreach($queryResult->query->allpages->p as $page) {
@@ -370,6 +396,7 @@ class Bot extends Request {
 	public function getAllusers(String $limit = "max", String $continue = "") {
 		$allusers = new Allusers($this->url, $limit, $continue);
 		$allusers->setCookieFile($this->cookiefile);
+		$allusers->setLogger($this->logger);
 		$queryResult = $allusers->execute();
 		
 		foreach($queryResult->query->allusers->u as $user) {
@@ -393,6 +420,7 @@ class Bot extends Request {
 	public function getBacklinks(String $link, String $limit = "max", String $continue = "") {
 		$backlinks = new Backlinks($this->url, $link, $limit, $continue);
 		$backlinks->setCookieFile($this->cookiefile);
+		$backlinks->setLogger($this->logger);
 		$queryResult = $backlinks->execute();
 		
 		foreach($queryResult->query->backlinks->bl as $backlink) {
@@ -467,6 +495,7 @@ class Bot extends Request {
 			do {
 				$categoriesQuery = new Categories($this->url, $toQuery, $limit, $continue, $filter);
 				$categoriesQuery->setCookieFile($this->cookiefile);
+				$categoriesQuery->setLogger($this->logger);
 				$queryResult = $categoriesQuery->execute();
 				
 				foreach($queryResult->query->pages->page as $page) {
@@ -506,6 +535,7 @@ class Bot extends Request {
 	public function getCategoryMembers(String $category, String $limit = "max", Array $types = array("page", "subcat", "file"), String $continue = "") {
 		$categorymembers = new Categorymembers($this->url, $category, $limit, $types, $continue);
 		$categorymembers->setCookieFile($this->cookiefile);
+		$categorymembers->setLogger($this->logger);
 		$queryResult = $categorymembers->execute();
 		
 		foreach($queryResult->query->categorymembers->cm as $categorymember) {
@@ -569,6 +599,7 @@ class Bot extends Request {
 	public function getContent(String $articles) {
 		$content = new Content($this->url, $articles);
 		$content->setCookieFile($this->cookiefile);
+		$content->setLogger($this->logger);
 		$queryResult = $content->execute();
 		
 		if(isset($queryResult->query)) {
@@ -627,6 +658,7 @@ class Bot extends Request {
 	public function getFileurl(String $files) {
 		$fileurls = new Fileurl($this->url, $files);
 		$fileurls->setCookieFile($this->cookiefile);
+		$fileurls->setLogger($this->logger);
 		$queryResult = $fileurls->execute();
 		
 		foreach($queryResult->query->pages->page as $page) {
@@ -655,6 +687,7 @@ class Bot extends Request {
 			do {
 				$fileusages = new Fileusage($this->url, $queryFiles, $limit, $namespace, $continue);
 				$fileusages->setCookieFile($this->cookiefile);
+				$fileusages->setLogger($this->logger);
 				$queryResult = $fileusages->execute();
 				
 				foreach($queryResult->query->pages->page as $page) {
@@ -687,6 +720,7 @@ class Bot extends Request {
 	public function getLanglinks(String $titles, String $lang = "", String $limit = "max") {
 		$langlinks = new Langlinks($this->url, $titles, $lang, $limit);
 		$langlinks->setCookieFile($this->cookiefile);
+		$langlinks->setLogger($this->logger);
 		$queryResult = $langlinks->execute();
 		
 		foreach($queryResult->query->pages->page as $page) {
@@ -742,6 +776,7 @@ class Bot extends Request {
 	public function getLinks(String $titles, String $targets = "", String $namespace = "*", String $limit = "max", String $continue = "") {
 		$links = new Links($this->url, $titles, $targets, $namespace, $limit, $continue);
 		$links->setCookieFile($this->cookiefile);
+		$links->setLogger($this->logger);
 		$queryResult = $links->execute();
 		
 		foreach($queryResult->query->pages->page as $page) {
@@ -771,6 +806,7 @@ class Bot extends Request {
 	public function getLogevents(String $action, String $user = "", String $namespace = "", String $limit = "max", String $continue = "") {
 		$logevents = new Logevents($this->url, $action, $user, $namespace, $limit, $continue);
 		$logevents->setCookieFile($this->cookiefile);
+		$logevents->setLogger($this->logger);
 		$queryResult = $logevents->execute();
 		
 		foreach($queryResult->query->logevents->item as $item) {
@@ -809,6 +845,7 @@ class Bot extends Request {
 	public function getRevisions(String $revids) {
 		$revisions = new Revisions($this->url, $revids);
 		$revisions->setCookieFile($this->cookiefile);
+		$revisions->setLogger($this->logger);
 		$queryResult = $revisions->execute();
 		
 		if(isset($queryResult->query->pages)) {
@@ -832,6 +869,7 @@ class Bot extends Request {
 	public function getRevisionUsers(String $page, String $limit = "max", String $continue = "") {
 		$revisionUsers = new RevisionUsers($this->url, $page, $limit, $continue);
 		$revisionUsers->setCookieFile($this->cookiefile);
+		$revisionUsers->setLogger($this->logger);
 		$queryResult = $revisionUsers->execute();
 		
 		foreach($queryResult->query->pages->page->revisions->rev as $revision) {
@@ -853,6 +891,7 @@ class Bot extends Request {
 	public function getSystemEditCount(String $users) {
 		$editcount = new Systemeditcount($this->url, $users);
 		$editcount->setCookieFile($this->cookiefile);
+		$editcount->setLogger($this->logger);
 		$queryResult = $editcount->execute();
 		
 		foreach($queryResult->query->users->user as $user) {
@@ -885,6 +924,7 @@ class Bot extends Request {
 		if(!isset($this->tokens[$type])) {
 			$token = new Token($this->url, $type);
 			$token->setCookieFile($this->cookiefile);
+			$token->setLogger($this->logger);
 			$this->tokens[$type] = $token->execute();
 		}
 		return $this->tokens[$type];
@@ -902,6 +942,7 @@ class Bot extends Request {
 	public function getTransclusions(String $link, String $limit = "max", String $continue = "") {
 		$transclusions = new Transclusions($this->url, $link, $limit, $continue);
 		$transclusions->setCookieFile($this->cookiefile);
+		$transclusions->setLogger($this->logger);
 		$queryResult = $transclusions->execute();
 		
 		foreach($queryResult->query->embeddedin->ei as $transclusion) {
@@ -966,6 +1007,7 @@ class Bot extends Request {
 	public function getUsercontribs(String $user, String $limit = "max", String $continue = "") {
 		$usercontribs = new Usercontribs($this->url, $user, $limit, $continue);
 		$usercontribs->setCookieFile($this->cookiefile);
+		$usercontribs->setLogger($this->logger);
 		$queryResult = $usercontribs->execute();
 		
 		foreach($queryResult->query->usercontribs->item as $usercontrib) {
@@ -994,6 +1036,7 @@ class Bot extends Request {
 		if(empty($this->userrights)) {
 			$userrights = new Userrights($this->url);
 			$userrights->setCookieFile($this->cookiefile);
+			$userrights->setLogger($this->logger);
 			$queryResult = $userrights->execute();
 			
 			foreach($queryResult->query->userinfo->rights->r as $userright) {
@@ -1013,6 +1056,7 @@ class Bot extends Request {
 	public function isRedirect(String $titles) {
 		$redirects = new Redirect($this->url, $titles);
 		$redirects->setCookieFile($this->cookiefile);
+		$redirects->setLogger($this->logger);
 		$queryResult = $redirects->execute();
 		
 		foreach($queryResult->query->pages->page as $page) {
@@ -1035,6 +1079,7 @@ class Bot extends Request {
 	public function login(String $username, String $password) {
 		$login = new Login($this->url, $username, $password);
 		$login->setCookieFile($this->cookiefile);
+		$login->setLogger($this->logger);
 		$queryResult = $login->execute($this->getToken("login"));
 		if($queryResult === true) {
 			$this->loggedIn = true;
@@ -1053,6 +1098,7 @@ class Bot extends Request {
 	public function logout() {
 		$logout = new Logout($this->url);
 		$logout->setCookieFile($this->cookiefile);
+		$logout->setLogger($this->logger);
 		$this->loggedIn = false;
 		return $logout->execute($this->getToken("csrf"));
 	}
@@ -1071,6 +1117,7 @@ class Bot extends Request {
 	public function move(String $from, String $to, String $reason = "", String $noredirect = "1", String $movetalk = "1") {
 		$move = new Move($this->url, $from, $to, $reason, $noredirect, $movetalk);
 		$move->setCookieFile($this->cookiefile);
+		$move->setLogger($this->logger);
 		return $move->execute($this->getToken("csrf"));
 	}
 	
@@ -1086,6 +1133,7 @@ class Bot extends Request {
 	public function parse(String $title = "", String $text = "") {
 		$wikitextparser = new Wikitextparser($this->url, $title, $text);
 		$wikitextparser->setCookieFile($this->cookiefile);
+		$wikitextparser->setLogger($this->logger);
 		return $wikitextparser;
 	}
 	
@@ -1103,6 +1151,7 @@ class Bot extends Request {
 	public function undo(String $page, String $revision, String $summary = "", String $isbot = "1", String $isminor = "1") {
 		$undo = new Undo($this->url, $page, $revision, $summary, $isbot, $isminor);
 		$undo->setCookieFile($this->cookiefile);
+		$undo->setLogger($this->logger);
 		return $undo->execute($this->getToken("csrf"));
 	}
 	
@@ -1120,6 +1169,7 @@ class Bot extends Request {
 	public function upload(String $filepath, String $filename, String $text, String $comment = "", String $ignorewarnings = "1") {
 		$upload = new Upload($this->url, $filepath, $filename, $text, $comment, $ignorewarnings);
 		$upload->setCookieFile($this->cookiefile);
+		$upload->setLogger($this->logger);
 		return $upload->execute($this->getToken("csrf"));
 	}
 	
@@ -1138,6 +1188,7 @@ class Bot extends Request {
 	public function uploadbyurl(String $fileurl, String $filename, String $text, String $comment = "", String $ignorewarnings = "1") {
 		$uploadbyurl = new Uploadbyurl($this->url, $fileurl, $filename, $text, $comment, $ignorewarnings);
 		$uploadbyurl->setCookieFile($this->cookiefile);
+		$uploadbyurl->setLogger($this->logger);
 		return $uploadbyurl->execute($this->getToken("csrf"));
 	}
 }

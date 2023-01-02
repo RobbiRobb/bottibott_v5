@@ -30,6 +30,7 @@ class Logout extends Request {
 	public function execute(String $token) {
 		$logout = new APIRequest($this->url);
 		$logout->setCookieFile($this->cookiefile);
+		$logout->setLogger($this->logger);
 		$logout->addToGetFields("action", "logout");
 		$logout->addToGetFields("format", "xml");
 		$logout->addToPostFields("token", $token);

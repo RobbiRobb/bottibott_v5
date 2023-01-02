@@ -5,10 +5,13 @@
 * @abstract
 * @method void setUrl(String $url)
 * @method void setCookieFile(String $cookiefile)
+* @method void setLogger(Logger $logger)
+* @method Logger getLogger()
 */
 abstract class Request {
-	protected $url;
-	protected $cookiefile;
+	protected ?String $url = null;
+	protected ?String $cookiefile = null;
+	protected ?Logger $logger = null;
 	
 	/**
 	* setter for the url
@@ -28,6 +31,25 @@ abstract class Request {
 	*/
 	protected function setCookieFile(String $cookiefile) {
 		$this->cookiefile = $cookiefile;
+	}
+	
+	/**
+	* setter for the logger
+	*
+	* @param Logger $logger  a reference to the logger object
+	* @access protected
+	*/
+	protected function setLogger(Logger &$logger) {
+		$this->logger = $logger;
+	}
+	
+	/**
+	* getter for the logger
+	*
+	* @access protected
+	*/
+	protected function &getLogger() {
+		return $logger;
 	}
 }
 ?>

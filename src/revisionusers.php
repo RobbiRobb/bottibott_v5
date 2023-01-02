@@ -72,6 +72,7 @@ class RevisionUsers extends Request {
 	public function execute() {
 		$revisionusers = new APIRequest($this->url);
 		$revisionusers->setCookieFile($this->cookiefile);
+		$revisionusers->setLogger($this->logger);
 		$revisionusers->addToGetFields("action", "query");
 		$revisionusers->addToGetFields("prop", "revisions");
 		$revisionusers->addToGetFields("rvprop", "user|ids");

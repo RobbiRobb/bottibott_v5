@@ -44,6 +44,7 @@ class Token extends Request {
 	public function execute() {
 		$token = new APIRequest($this->url);
 		$token->setCookieFile($this->cookiefile);
+		$token->setLogger($this->logger);
 		$token->addToGetFields("action", "query");
 		$token->addToGetFields("meta", "tokens");
 		$token->addToGetFields("type", $this->type);

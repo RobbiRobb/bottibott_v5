@@ -45,6 +45,7 @@ class Revisions extends Request {
 	public function execute() {
 		$revisions = new APIRequest($this->url);
 		$revisions->setCookieFile($this->cookiefile);
+		$revisions->setLogger($this->logger);
 		$revisions->addToGetFields("action", "query");
 		$revisions->addToGetFields("prop", "revisions");
 		$revisions->addToGetFields("rvprop", "user|ids");

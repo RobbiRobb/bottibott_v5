@@ -23,7 +23,6 @@ class APIRequest extends Request {
 	/**
 	* constructor for class APIRequest
 	*
-	* @access public
 	* @param String $url  the url to the wiki
 	* @access public
 	*/
@@ -106,13 +105,15 @@ class APIRequest extends Request {
 	*/
 	public function execute() {
 		$request = curl_init();
-		curl_setopt($request, CURLOPT_URL, $this->url."?".http_build_query($this->get));
+		curl_setopt($request, CURLOPT_URL, $this->url . "?" . http_build_query($this->get));
 		curl_setopt($request, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($request, CURLOPT_COOKIEFILE, $this->cookiefile);
 		curl_setopt($request, CURLOPT_COOKIEJAR, $this->cookiefile);
 		curl_setopt($request, CURLOPT_POST, true);
 		curl_setopt($request, CURLOPT_POSTFIELDS, $this->post);
+		if($this->logger !== null) $this->logger->logRequest($this->url, $this->get, $this->post);
 		$queryResult = simplexml_load_string(curl_exec($request));
+		if($this->logger !== null) $this->logger->logResponse($request);
 		curl_close($request);
 		return $queryResult;
 	}
@@ -125,7 +126,7 @@ class APIRequest extends Request {
 	*/
 	public function &getRequest() {
 		$request = curl_init();
-		curl_setopt($request, CURLOPT_URL, $this->url."?".http_build_query($this->get));
+		curl_setopt($request, CURLOPT_URL, $this->url . "?" . http_build_query($this->get));
 		curl_setopt($request, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($request, CURLOPT_COOKIEFILE, $this->cookiefile);
 		curl_setopt($request, CURLOPT_COOKIEJAR, $this->cookiefile);

@@ -100,6 +100,7 @@ class Uploadbyurl extends Request {
 	public function execute(String $token) {
 		$uploadbyurl = new APIRequest($this->url);
 		$uploadbyurl->setCookieFile($this->cookiefile);
+		$uploadbyurl->setLogger($this->logger);
 		$uploadbyurl->addToGetFields("action", "upload");
 		$uploadbyurl->addToGetFields("format", "xml");
 		$uploadbyurl->addToPostFields("url", $this->fileurl);

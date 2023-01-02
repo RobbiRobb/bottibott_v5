@@ -59,6 +59,7 @@ class Delete extends Request {
 	public function execute(String $token) {
 		$delete = new APIRequest($this->url);
 		$delete->setCookieFile($this->cookiefile);
+		$delete->setLogger($this->logger);
 		$delete->addToGetFields("action", "delete");
 		$delete->addToGetFields("format", "xml");
 		$delete->addToGetFields("title", $this->title);

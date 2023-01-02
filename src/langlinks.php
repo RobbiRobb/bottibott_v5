@@ -71,6 +71,7 @@ class Langlinks extends Request {
 	public function execute() {
 		$langlinks = new APIRequest($this->url);
 		$langlinks->setCookieFile($this->cookiefile);
+		$langlinks->setLogger($this->logger);
 		$langlinks->addToGetFields("action", "query");
 		$langlinks->addToGetFields("prop", "langlinks");
 		$langlinks->addToGetFields("format", "xml");

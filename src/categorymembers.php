@@ -86,6 +86,7 @@ class Categorymembers extends Request {
 	public function execute() {
 		$categorymembers = new APIRequest($this->url);
 		$categorymembers->setCookieFile($this->cookiefile);
+		$categorymembers->setLogger($this->logger);
 		$categorymembers->addToGetFields("action", "query");
 		$categorymembers->addToGetFields("list", "categorymembers");
 		$categorymembers->addToGetFields("format", "xml");

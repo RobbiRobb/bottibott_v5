@@ -30,6 +30,7 @@ class Userrights extends Request {
 	public function execute() {
 		$userrights = new APIRequest($this->url);
 		$userrights->setCookieFile($this->cookiefile);
+		$userrights->setLogger($this->logger);
 		$userrights->addToGetFields("action", "query");
 		$userrights->addToGetFields("meta", "userinfo");
 		$userrights->addToGetFields("uiprop", "rights");

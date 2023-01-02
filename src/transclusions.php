@@ -72,6 +72,7 @@ class Transclusions extends Request {
 	public function execute() {
 		$transclusions = new APIRequest($this->url);
 		$transclusions->setCookieFile($this->cookiefile);
+		$transclusions->setLogger($this->logger);
 		$transclusions->addToGetFields("action", "query");
 		$transclusions->addToGetFields("list", "embeddedin");
 		$transclusions->addToGetFields("format", "xml");

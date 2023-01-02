@@ -86,7 +86,7 @@ class Undo extends Request {
 	* @param String $isminor  the new value
 	* @access public
 	*/
-	public function setIsinor(String $isminor) {
+	public function setIsminor(String $isminor) {
 		$this->isminor = $isminor;
 	}
 	
@@ -100,6 +100,7 @@ class Undo extends Request {
 	public function execute(String $token) {
 		$undo = new APIRequest($this->url);
 		$undo->setCookieFile($this->cookiefile);
+		$undo->setLogger($this->logger);
 		$undo->addToGetFields("action", "edit");
 		$undo->addToGetFields("format", "xml");
 		$undo->addToPostFields("title", $this->page);

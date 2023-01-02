@@ -86,6 +86,7 @@ class Categories extends Request {
 	public function execute() {
 		$categories = new APIRequest($this->url);
 		$categories->setCookieFile($this->cookiefile);
+		$categories->setLogger($this->logger);
 		$categories->addToGetFields("action", "query");
 		$categories->addToGetFields("prop", "categories");
 		$categories->addToGetFields("format", "xml");

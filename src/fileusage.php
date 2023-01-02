@@ -86,6 +86,7 @@ class Fileusage extends Request {
 	public function execute() {
 		$fileusage = new APIRequest($this->url);
 		$fileusage->setCookieFile($this->cookiefile);
+		$fileusage->setLogger($this->logger);
 		$fileusage->addToGetFields("action", "query");
 		$fileusage->addToGetFields("prop", "fileusage");
 		$fileusage->addToGetFields("format", "xml");

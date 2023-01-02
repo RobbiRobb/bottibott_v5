@@ -103,6 +103,7 @@ class Move extends Request {
 	public function execute(String $token) {
 		$move = new APIRequest($this->url);
 		$move->setCookieFile($this->cookiefile);
+		$move->setLogger($this->logger);
 		$move->addToGetFields("action", "move");
 		$move->addToGetFields("format", "xml");
 		$move->addToGetFields("from", $this->from);

@@ -59,6 +59,7 @@ class Login extends Request {
 	public function execute(String $token) {
 		$login = new APIRequest($this->url);
 		$login->setCookieFile($this->cookiefile);
+		$login->setLogger($this->logger);
 		$login->addToGetFields("action", "clientlogin");
 		$login->addToGetFields("format", "xml");
 		$login->addToPostFields("loginreturnurl", $this->url);

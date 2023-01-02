@@ -100,6 +100,7 @@ class Wikitextparser extends Request {
 	private function generateSectionData(String $section = "") {
 		$sections = new APIRequest($this->url);
 		$sections->setCookieFile($this->cookiefile);
+		$sections->setLogger($this->logger);
 		$sections->addToGetFields("action", "parse");
 		$sections->addToGetFields("format", "xml");
 		$sections->addToGetFields("page", $this->title);
@@ -168,6 +169,7 @@ class Wikitextparser extends Request {
 	public function parseFromTitle(String $section = "") {
 		$text = new APIRequest($this->url);
 		$text->setCookieFile($this->cookiefile);
+		$text->setLogger($this->logger);
 		$text->addToGetFields("action", "parse");
 		$text->addToGetFields("format", "xml");
 		$text->addToGetFields("page", $this->title);
@@ -208,6 +210,7 @@ class Wikitextparser extends Request {
 	public function parseText() {
 		$text = new APIRequest($this->url);
 		$text->setCookieFile($this->cookiefile);
+		$text->setLogger($this->logger);
 		$text->addToGetFields("action", "parse");
 		$text->addToGetFields("format", "xml");
 		if(!empty($this->title)) { $text->addToGetFields("title", $this->title); } // MediaWiki doesn't like set but empty title

@@ -44,6 +44,7 @@ class Redirect extends Request {
 	public function execute() {
 		$redirect = new APIRequest($this->url);
 		$redirect->setCookieFile($this->cookiefile);
+		$redirect->setLogger($this->logger);
 		$redirect->addToPostFields("action", "query");
 		$redirect->addToPostFields("redirects", "1");
 		$redirect->addToPostFields("format", "xml");

@@ -72,6 +72,7 @@ class Backlinks extends Request {
 	public function execute() {
 		$backlinks = new APIRequest($this->url);
 		$backlinks->setCookieFile($this->cookiefile);
+		$backlinks->setLogger($this->logger);
 		$backlinks->addToGetFields("action", "query");
 		$backlinks->addToGetFields("list", "backlinks");
 		$backlinks->addToGetFields("format", "xml");

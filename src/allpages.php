@@ -86,6 +86,7 @@ class Allpages extends Request {
 	public function execute() {
 		$allpages = new APIRequest($this->url);
 		$allpages->setCookieFile($this->cookiefile);
+		$allpages->setLogger($this->logger);
 		$allpages->addToGetFields("action", "query");
 		$allpages->addToGetFields("list", "allpages");
 		$allpages->addToGetFields("format", "xml");

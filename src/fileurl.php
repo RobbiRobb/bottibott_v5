@@ -42,6 +42,7 @@ class Fileurl extends Request {
 	public function execute() {
 		$fileurl = new APIRequest($this->url);
 		$fileurl->setCookieFile($this->cookiefile);
+		$fileurl->setLogger($this->logger);
 		$fileurl->addToGetFields("action", "query");
 		$fileurl->addToGetFields("format", "xml");
 		$fileurl->addToGetFields("prop", "imageinfo");
