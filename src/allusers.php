@@ -13,6 +13,7 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 class Allusers extends Request {
 	private String $limit;
 	private String $continue;
+	private bool $active;
 	
 	/**
 	* constructor for class Allusers
@@ -26,6 +27,7 @@ class Allusers extends Request {
 		$this->url = $url;
 		$this->continue = $continue;
 		$this->limit = $limit;
+		$this->active = false;
 		$this->cookiefile = "cookies.txt";
 	}
 	
@@ -50,6 +52,17 @@ class Allusers extends Request {
 	}
 	
 	/**
+	* setter for active value
+	* setting this to true will only return users who have actions in the last 90 days
+	*
+	* @param bool $active  new value for active
+	* @access public
+	*/
+	public function setActive(bool $active) {
+		$this->active = $active;
+	}
+	
+	/**
 	* executor for the API-request
 	*
 	* @return SimpleXMLElement  the SimpleXMLElement-representation of the query result
@@ -64,6 +77,7 @@ class Allusers extends Request {
 		$allusers->addToGetFields("format", "xml");
 		$allusers->addToGetFields("aufrom", $this->continue);
 		$allusers->addToGetFields("aulimit", $this->limit);
+		if($this->active) $allusers->addToGetFields("auactiveusers", $this->active);
 		return $allusers->execute();
 	}
 }

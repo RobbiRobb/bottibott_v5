@@ -78,6 +78,15 @@ class Bot extends Request {
 	}
 	
 	/**
+	* destructor for class Bot
+	* 
+	* @access public
+	*/
+	public function __destruct() {
+		$this->logger->stopLogging();
+	}
+	
+	/**
 	* getter for the url
 	*
 	* @return String  the url to the wiki
@@ -316,6 +325,30 @@ class Bot extends Request {
 		$wikitext->setCookieFile($this->cookiefile);
 		$wikitext->setLogger($this->logger);
 		return $wikitext->execute();
+	}
+	
+	/**
+	* generator for all active users in a wiki
+	*
+	* @param String $limit     the maximum amount of users to query
+	* @param String $continue  value for additional queries
+	* @return Generator|String  the username and their recentactions in a key => value form
+	* @access public
+	*/
+	public function getActiveUsers(String $limit = "max", String $continue = "") {
+		$allusers = new Allusers($this->url, $limit, $continue);
+		$allusers->setActive(true);
+		$allusers->setCookieFile($this->cookiefile);
+		$allusers->setLogger($this->logger);
+		$queryResult = $allusers->execute();
+		
+		foreach($queryResult->query->allusers->u as $user) {
+			yield (String)$user["name"] => (String)$user["recentactions"];
+		}
+		
+		if(isset($queryResult->continue)) {
+			yield from $this->getActiveUsers($limit, $queryResult->continue["aufrom"]);
+		}
 	}
 	
 	/**
