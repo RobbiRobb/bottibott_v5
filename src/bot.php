@@ -24,6 +24,7 @@ spl_autoload_register(function($class) {require(strtolower($class).".php");});
 * @method Generator|Array expandTemplatesFromNamespaces(Array $namespaces)
 * @method Generator|Array expandTemplatesFromTransclusions(Array $transclusions)
 * @method String expandWikitext(String $text, String $title)
+* @method Generator|String getActiveUsers(String $limit, String $continue)
 * @method Generator|String getAllpages(String $namespace, String $filter, String $limit, String $continue)
 * @method Generator|Array getAllpagesContents(String $namespace, String $filter, String $limit)
 * @method Generator|Array getAllusers(String $limit, String $continue)

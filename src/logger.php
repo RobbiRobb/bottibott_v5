@@ -65,7 +65,7 @@ class Logger {
 	* @access public
 	*/
 	public function stopLogging() {
-		fclose($this->file);
+		if($this->file !== null) fclose($this->file);
 		$this->isLogging = false;
 	}
 	

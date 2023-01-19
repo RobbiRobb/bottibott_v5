@@ -49,7 +49,7 @@ abstract class Request {
 	* @access protected
 	*/
 	protected function &getLogger() {
-		return $logger;
+		return $this->logger;
 	}
 }
 ?>

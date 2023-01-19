@@ -74,7 +74,7 @@ class Categories extends Request {
 	* @access public
 	*/
 	public function setFilter(Array $filter) {
-		$this->filter = $ilter;
+		$this->filter = $filter;
 	}
 	
 	/**
