@@ -1,6 +1,4 @@
 <?php
-spl_autoload_register(function($class) {require(strtolower($class).".php");});
-
 /**
 * A class for performing multiple API-requests at the same time
 *

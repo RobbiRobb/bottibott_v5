@@ -1,8 +1,6 @@
 <?php
-spl_autoload_register(function($class) {require(strtolower($class).".php");});
-
 /**
-* A class for representing API-requests for all categories of one or multiple oages
+* A class for representing API-requests for all categories of one or multiple pages
 *
 * The class Categories allows the creation of API-requests for all categories of one or multiple given pages
 *
