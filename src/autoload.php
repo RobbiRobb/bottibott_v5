@@ -4,6 +4,8 @@
 * Will automatically include all relevant files to guarantee classes are loaded
 */
 spl_autoload_register(function($class) {
-	require(strtolower($class) . ".php");
+	if(file_exists(__DIR__ . "/" . strtolower($class) . ".php")) {
+		require(strtolower($class) . ".php");
+	}
 });
 ?>
