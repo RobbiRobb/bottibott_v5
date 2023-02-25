@@ -24,20 +24,20 @@
 * @method String expandWikitext(String $text, String $title)
 * @method Generator|String getActiveUsers(String $limit, String $continue)
 * @method Generator|String getAllpages(String $namespace, String $filter, String $limit, String $continue)
-* @method Generator|Array getAllpagesContents(String $namespace, String $filter, String $limit)
+* @method Generator|String getAllpagesContents(String $namespace, String $filter, String $limit)
 * @method Generator|Array getAllusers(String $limit, String $continue)
 * @method Generator|String getBacklinks(String $link, String $limit, String $continue)
-* @method Generator|Array getBacklinksContents(String $link, String $limit)
+* @method Generator|String getBacklinksContents(String $link, String $limit)
 * @method Generator|Array getCategories(Array $pages, String $limit, Array $filter)
 * @method Generator|String getCategoryMembers(String $category, String $limit, Array $types, String $continue)
-* @method Generator|Array getCategoryMembersContents(String $category, String $limit, Array $types)
-* @method Generator|Array getContent(String $articles)
+* @method Generator|String getCategoryMembersContents(String $category, String $limit, Array $types)
+* @method Generator|Array getContent(Array|String $articles)
 * @method CurlHandle getContentRequest(String $articles)
 * @method CurlHandle getEditRequest(String $page, String $content, String $summary, String $isbot, String $isminor)
 * @method Generator|Array getFileusage(Array $files, String $namespace, String $limit)
 * @method Generator|Array getLanglinks(String $titles, String $lang, String $limit)
 * @method Generator|String getLinklist(String $link, String $limit)
-* @method Generator|Array getLinklistContents(String $link, String $limit)
+* @method Generator|String getLinklistContents(String $link, String $limit)
 * @method Generator|Array getLinks(String $titles, String $targets, String $namespace, String $limit, String $continue)
 * @method Generator|Array getLogevents(String $action, String $user, String $namespace, String $limit, String $continue)
 * @method CurlHandle getMoveRequest(String $from, String $to, String $reason, String $noredirect, String $movetalk)
@@ -47,7 +47,7 @@
 * @method Array getTemplateParameters(String $content)
 * @method String getToken(String $token)
 * @method Generator|String getTransclusions(String $link, String $limit, String $continue)
-* @method Generator|Array getTransclusionsContents(String $link, String $limit)
+* @method Generator|String getTransclusionsContents(String $link, String $limit)
 * @method Generator|Array getUsercontribs(String $user, String $limit, String $continue)
 * @method bool hasRight(String $right)
 * @method Generator|Array isRedirect(String $titles)
@@ -381,40 +381,12 @@ class Bot extends Request {
 	* @param String $namespace  the namespace to get pages from
 	* @param Strnig $filter     filter for the type of pages. Allowed values are "all", "redirects" and "nonredirects"
 	* @param String $limit      the maximum amount of pages to query
-	* @return Generator|Array   an array containing title and content of all pages
+	* @return Generator|String  title and content of a page in the given namespace
 	* @access public
 	*/
 	public function getAllpagesContents(String $namespace, String $filter = "all", String $limit = "max") {
-		$pages = "";
-		$counter = 0;
-		$max = $this->hasRight("apihighlimits") ? 500 : 50;
-		
-		$requester = new APIMultiRequest();
-		
-		foreach($this->getAllpages($namespace, $filter, $limit) as $page) {
-			$pages .= "|".$page;
-			$counter++;
-			
-			if($counter === $max) {
-				$requester->addRequest($this->getContentRequest(trim($pages, "|")));
-				$pages = "";
-				$counter = 0;
-			}
-		}
-		
-		$requester->addRequest($this->getContentRequest(trim($pages, "|")));
-		
-		foreach($requester->execute() as $queryResult) {
-			if(isset($queryResult->query)) {
-				foreach($queryResult->query->pages->page as $content) {
-					if(!isset($content->revisions->rev)) {
-						yield from $this->getContent($content["title"]);
-					} else {
-						yield (String)$content["title"] => (String)$content->revisions->rev->slots->slot;
-					}
-				}
-			}
-		}
+		$pages = iterator_to_array($this->getAllpages($namespace, $filter, $limit), false);
+		yield from $this->getContent($pages);
 	}
 	
 	/**
@@ -467,42 +439,14 @@ class Bot extends Request {
 	/**
 	* generator for the content of all pages linking to a given page
 	*
-	* @param String $link      the page linking to
-	* @param String $limit     the maximum amount of pages to query
-	* @return Generator|Array  an array containing title and content of all pages
+	* @param String $link       the page linking to
+	* @param String $limit      the maximum amount of pages to query
+	* @return Generator|String  title and content of a page in the list of backlinks
 	* @access public
 	*/
 	public function getBacklinksContents(String $link, String $limit = "max") {
-		$pages = "";
-		$counter = 0;
-		$max = $this->hasRight("apihighlimits") ? 500 : 50;
-	
-		$requester = new APIMultiRequest();
-		
-		foreach($this->getBacklinks($link, $limit) as $backlink) {
-			$pages .= "|".$backlink;
-			$counter++;
-			
-			if($counter === $max) {
-				$requester->addRequest($this->getContentRequest(trim($pages, "|")));
-				$pages = "";
-				$counter = 0;
-			}
-		}
-		
-		$requester->addRequest($this->getContentRequest(trim($pages, "|")));
-		
-		foreach($requester->execute() as $queryResult) {
-			if(isset($queryResult->query)) {
-				foreach($queryResult->query->pages->page as $content) {
-					if(!isset($content->revisions->rev)) {
-						yield from $this->getContent($content["title"]);
-					} else {
-						yield (String)$content["title"] => (String)$content->revisions->rev->slots->slot;
-					}
-				}
-			}
-		}
+		$pages = iterator_to_array($this->getBacklinks($link, $limit), false);
+		yield from $this->getContent($pages);
 	}
 	
 	/**
@@ -582,70 +526,55 @@ class Bot extends Request {
 	/**
 	* generator for the content of all pages in a given category
 	*
-	* @param String $category  the category to get pages from
-	* @param String $limit     the maximum amount of pages to query
-	* @param Array $types      an array containing the types of the query. May contain any but at least one of "page", "subcat" or "file"
-	* @return Generator|Array  an array containing page title and content of all pages
+	* @param String $category   the category to get pages from
+	* @param String $limit      the maximum amount of pages to query
+	* @param Array $types       an array containing the types of the query. May contain any but at least one of "page", "subcat" or "file"
+	* @return Generator|String  title and content of a page in the category
 	* @access public
 	*/
 	public function getCategoryMembersContents(String $category, String $limit = "max", Array $types = array("page", "subcat", "file")) {
-		$pages = "";
-		$counter = 0;
-		$max = $this->hasRight("apihighlimits") ? 500 : 50;
+		$pages = iterator_to_array($this->getCategoryMembers($category, $limit, $types), false);
+		yield from $this->getContent($pages);
+	}
+	
+	/**
+	* getter for the content of a page
+	*
+	* @param Array|String $titles  the titles of the pages for which the content should be queried
+	* @return Generator|String     the title and the content of the page. NULL if page does not exist
+	* @access public
+	*/
+	public function getContent(Array|String $articles) {
+		if(gettype($articles) === "string") $articles = explode("|", $articles);
 		
+		$redo = array();
+		
+		$max = $this->hasRight("apihighlimits") ? 500 : 50;
 		$requester = new APIMultiRequest();
 		
-		foreach($this->getCategoryMembers($category, $limit, $types) as $categorymember) {
-			$pages .= "|".$categorymember;
-			$counter++;
-			
-			if($counter === $max) {
-				$requester->addRequest($this->getContentRequest(trim($pages, "|")));
-				$pages = "";
-				$counter = 0;
-			}
+		while(count($articles) > 0) {
+			$requester->addRequest($this->getContentRequest(implode("|", array_slice($articles, 0, $max))));
+			$articles = array_splice($articles, $max);
 		}
-		
-		$requester->addRequest($this->getContentRequest(trim($pages, "|")));
 		
 		foreach($requester->execute() as $queryResult) {
 			if(isset($queryResult->query)) {
 				foreach($queryResult->query->pages->page as $content) {
+					if(isset($content["missing"])) {
+						yield (String)$content["title"] => NULL;
+						continue;
+					}
 					if(!isset($content->revisions->rev)) {
-						yield from $this->getContent($content["title"]);
+						array_push($redo, (string)($content["title"]));
 					} else {
 						yield (String)$content["title"] => (String)$content->revisions->rev->slots->slot;
 					}
 				}
 			}
 		}
-	}
-	
-	/**
-	* getter for the content of a page
-	*
-	* @param String $titles     the titles of the pages for which the content should be queried
-	* @return Generator|String  the title and the content of the page. NULL if page does not exist
-	* @access public
-	*/
-	public function getContent(String $articles) {
-		$content = new Content($this->url, $articles);
-		$content->setCookieFile($this->cookiefile);
-		$content->setLogger($this->logger);
-		$queryResult = $content->execute();
 		
-		if(isset($queryResult->query)) {
-			foreach($queryResult->query->pages->page as $content) {
-				if(isset($content["missing"])) {
-					yield (String)$content["title"] => NULL;
-					continue;
-				}
-				if(!isset($content->revisions->rev)) {
-					yield from $this->getContent($content["title"]);
-				} else {
-					yield (String)$content["title"] => (String)$content->revisions->rev->slots->slot;
-				}
-			}
+		if(!empty($redo)) {
+			yield from $this->getContent($redo);
 		}
 	}
 	
@@ -989,42 +918,14 @@ class Bot extends Request {
 	/**
 	* generator for the content of all pages transcluding a given page
 	*
-	* @param String $link      the transcluded page
-	* @param String $limit     the maximum amount of pages to query
-	* @return Generator|Array  an array containing title and content of all pages
+	* @param String $link       the transcluded page
+	* @param String $limit      the maximum amount of pages to query
+	* @return Generator|String  title and content of a page in the list of transclusions
 	* @access public
 	*/
 	public function getTransclusionsContents(String $link, String $limit = "max") {
-		$pages = "";
-		$counter = 0;
-		$max = $this->hasRight("apihighlimits") ? 500 : 50;
-		
-		$requester = new APIMultiRequest();
-		
-		foreach($this->getTransclusions($link, $limit) as $transclusion) {
-			$pages .= "|".$transclusion;
-			$counter++;
-			
-			if($counter === $max) {
-				$requester->addRequest($this->getContentRequest(trim($pages, "|")));
-				$pages = "";
-				$counter = 0;
-			}
-		}
-		
-		$requester->addRequest($this->getContentRequest(trim($pages, "|")));
-		
-		foreach($requester->execute() as $queryResult) {
-			if(isset($queryResult->query)) {
-				foreach($queryResult->query->pages->page as $content) {
-					if(!isset($content->revisions->rev)) {
-						yield from $this->getContent($content["title"]);
-					} else {
-						yield (String)$content["title"] => (String)$content->revisions->rev->slots->slot;
-					}
-				}
-			}
-		}
+		$pages = iterator_to_array($this->getTransclusions($link, $limit), false);
+		yield from $this->getContent($pages);
 	}
 	
 	/**
