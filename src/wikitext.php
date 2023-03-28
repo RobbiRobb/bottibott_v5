@@ -63,7 +63,7 @@ class Wikitext extends Request {
 		$wikitext->addToGetFields("format", "xml");
 		$wikitext->addToGetFields("prop", "wikitext");
 		$wikitext->addToGetFields("includecomments", "1");
-		$wikitext->addToPOSTFields("title", $this->title);
+		if(!empty($this->title)) $wikitext->addToPOSTFields("title", $this->title);
 		$wikitext->addToPOSTFields("text", $this->text);
 		return (String)$wikitext->execute()->expandtemplates->wikitext;
 	}

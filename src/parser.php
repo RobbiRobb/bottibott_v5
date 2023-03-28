@@ -85,7 +85,7 @@ class Parser {
 									$array[trim((String)$parameters->name)]["name"] = (String)$parameters->name;
 									try {
 										$array[trim((String)$parameters->name)]["value"][$i][trim((String)$subTemplate->template[$i]->title)] = $parser->parseTemplate();
-									} catch(TypeError $e) {
+									} catch(Error $e) {
 										// ignore for now, if this part is reached it means the content of a template is used as the name of parameter
 										// obviously this can work, but usually that means a parser function is evaluated and there is an = somwhere in there
 									}

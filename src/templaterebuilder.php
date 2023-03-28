@@ -20,6 +20,7 @@
 * @method TemplateRebuilder addParam(String $param, String $value)
 * @method TemplateRebuilder setParam(String $param, String $value)
 * @method TemplateRebuilder renameParam(String $oldName, String $newName)
+* @method TemplateRebuilder replaceString(String $search, String $replace, int $limit)
 * @method String rebuild()
 * @method mixed rebuildParam(String $param)
 */
@@ -96,6 +97,7 @@ class TemplateRebuilder {
 	public function getParams() {
 		if(is_array($this->template)) {
 			foreach($this->template as $template) {
+				if(!isset($template["name"])) continue; // ignore, probably a parser function
 				yield $template["name"] => $template["value"];
 			}
 		} else {
@@ -277,6 +279,23 @@ class TemplateRebuilder {
 		
 		$this->template = $newTemplate;
 		
+		return $this;
+	}
+	
+	/**
+	* allow replacement if a template represents a string
+	*
+	* @param String $search      the search string
+	* @param String $replace     the replacement string
+	* @param int $limit          a limit for how many replacements will be executed
+	* @return TemplateRebuilder  itself to allow the chaining of calls
+	* @throws Exception          if the template is not a string
+	* @access public
+	*/
+	public function replaceString(String $search, String $replace, int $limit = 0) {
+		if(gettype($this->template) !== "string") throw new Error("String replace on actual templates is not supported. Use the other methods to replace on the name, parameters or values or use a regular string replace on the content of a page.");
+		
+		$this->template = str_replace($search, $replace, $this->template, $limit);
 		return $this;
 	}
 	
