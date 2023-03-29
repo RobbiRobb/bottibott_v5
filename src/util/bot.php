@@ -14,13 +14,13 @@
 * @method SimpleXMLElement delete(String $title, String $reason)
 * @method SimpleXMLElement edit(String $page, String $content, String $summary, String $isbot, String $isminor)
 * @method boolean exists(String $page)
-* @method Parsetree expandTemplates(String $content)
-* @method Generator|Array expandTemplatesFromTitles(Array $titles)
-* @method Generator|Array expandTemplatesFromBacklinks(Array $backlinks)
-* @method Generator|Array expandTemplatesFromCategories(Array $categories)
-* @method Generator|Array expandTemplatesFromLinklists(Array $linklists)
-* @method Generator|Array expandTemplatesFromNamespaces(Array $namespaces)
-* @method Generator|Array expandTemplatesFromTransclusions(Array $transclusions)
+* @method Page expandTemplates(String $content)
+* @method Generator|Page expandTemplatesFromTitles(Array $titles)
+* @method Generator|Page expandTemplatesFromBacklinks(Array $backlinks)
+* @method Generator|Page expandTemplatesFromCategories(Array $categories)
+* @method Generator|Page expandTemplatesFromLinklists(Array $linklists)
+* @method Generator|Page expandTemplatesFromNamespaces(Array $namespaces)
+* @method Generator|Page expandTemplatesFromTransclusions(Array $transclusions)
 * @method String expandWikitext(String $text, String $title)
 * @method Generator|String getActiveUsers(String $limit, String $continue)
 * @method Generator|String getAllpages(String $namespace, String $filter, String $limit, String $continue)
@@ -171,7 +171,7 @@ class Bot extends Request {
 	* handler for expanding templates
 	*
 	* @param String $content  the content that should be expanded
-	* @return Parsetree       a Parsetree-object allowing the expansion of the template
+	* @return Page            a page object containing all templates that were expanded
 	* @access public
 	*/
 	public function expandTemplates(String $content) {
@@ -179,14 +179,14 @@ class Bot extends Request {
 		$parsetree->setCookieFile($this->cookiefile);
 		$parsetree->setLogger($this->logger);
 		$parsetree->setContent($content);
-		return $parsetree;
+		return $parsetree->execute();
 	}
 	
 	/**
 	* handler for expanding templates from (multiple) page titles
 	*
-	* @param Array $titles     an array of the titles that should be expanded
-	* @return Generator|Array  an array containing the page title and the template that is used on that page
+	* @param Array $titles    an array of the titles that should be expanded
+	* @return Generator|Page  a page object with all templates transcluded on that page
 	* @access public
 	*/
 	public function expandTemplatesFromTitles(Array $titles) {
@@ -205,10 +205,15 @@ class Bot extends Request {
 			$index++;
 			
 			$parsetree = new Parsetree($this->url);
+			$parsetree->setTitle((String)$queryResult->parse["title"]);
 			$parsetree->setExpandedContent((String)$queryResult->parse->parsetree);
-			foreach($parsetree->match() as $parser) {
-				yield (String)$queryResult->parse["title"] => $parser->parse();
+			try {
+				$res = $parsetree->parseToPage();
+			} catch(Error $e) {
+				//ignore and continue
+				continue;
 			}
+			yield $res;
 			
 			if($index % 5000 === 0) {
 				sleep(30);
@@ -220,7 +225,7 @@ class Bot extends Request {
 	* handler for expanding templates from (multiple) backlinks
 	*
 	* @param Array $backlinks  an array of backlinks
-	* @return Generator|Array  an array containing the page title and the template that is used on that page
+	* @return Generator|Page   a page object with all templates transcluded on that page
 	* @access public
 	*/
 	public function expandTemplatesFromBacklinks(Array $backlinks) {
@@ -239,7 +244,7 @@ class Bot extends Request {
 	* handler for expanding templates from (multiple) categories
 	*
 	* @param Array $categories  an array of categories
-	* @return Generator|Array   an array containing the page title and the template that is used on that page
+	* @return Generator|Page    a page object with all templates transcluded on that page
 	* @access public
 	*/
 	public function expandTemplatesFromCategories(Array $categories) {
@@ -258,7 +263,7 @@ class Bot extends Request {
 	* handler for expanding templates from (multiple) linklists
 	*
 	* @param Array $linklists  an array of linklists
-	* @return Generator|Array  an array containing the page title and the template that is used on that page
+	* @return Generator|Page   a page object with all templates transcluded on that page
 	* @access public
 	*/
 	public function expandTemplatesFromLinklists(Array $linklists) {
@@ -277,7 +282,7 @@ class Bot extends Request {
 	* handler for expanding templates from (multiple) namespaces
 	*
 	* @param Array $namespaces  an array of namespaces
-	* @return Generator|Array   an array containing the page title and the template that is used on that page
+	* @return Generator|Page    a page object with all templates transcluded on that page
 	* @access public
 	*/
 	public function expandTemplatesFromNamespaces(Array $namespaces) {
@@ -296,7 +301,7 @@ class Bot extends Request {
 	* handler for expanding templates from (multiple) transcluded pages
 	*
 	* @param Array $transclusions  an array of transcluded pages
-	* @return Generator|Array      an array containing the page title and the template that is used on that page
+	* @return Generator|Page       a page object with all templates transcluded on that page
 	* @access public
 	*/
 	public function expandTemplatesFromTransclusions(Array $transclusions) {
