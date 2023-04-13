@@ -7,12 +7,15 @@
 * It is also possible to search for parameters and values in a template
 *
 * @method string getTitle()
+* @method array getTitleArgs()
 * @method void setTitle(string $title)
 * @method string getParam(string $param)
 * @method Generator|mixed getParams()
 * @method bool contains(string $param)
 * @method bool strContains(string $needle)
 * @method bool isString()
+* @method void setIsArg(bool $isArg)
+* @method bool isArg()
 * @method Template addParam(string $param, mixed $value)
 * @method Template addParamBefore(string $before, string $newParam, string $value)
 * @method Template addParamAfter(string $after, string $newParam, string $value)
@@ -27,17 +30,24 @@
 class Template {
 	private mixed $template;
 	private string $title;
+	private array $titleArgs;
+	private bool $isArg;
+	
+	private const TEMPLATE_UNSUPPORTED_OPERATION = "Parameter operations are not supported if template is a string";
 	
 	/**
 	* constructor for class Template
 	*
-	* @param mixed $template  the previously expanded and parsed template
-	* @param string $title    the title of the template
+	* @param mixed $template   the previously expanded and parsed template
+	* @param string $title     the title of the template
+	* @param array $titleArgs  the titleargs if the title is not a string
 	* @access public
 	*/
-	public function __construct(mixed $template = array(), string $title = "") {
+	public function __construct(mixed $template = array(), string $title = "", array $titleArgs = array()) {
 		$this->template = $template;
 		$this->title = $title;
+		$this->titleArgs = $titleArgs;
+		$this->isArg = false;
 	}
 	
 	/**
@@ -51,14 +61,26 @@ class Template {
 	}
 	
 	/**
-	* setter for the name of the template
+	* getter for the titleargs
 	*
-	* @param string $title  the new name of the template
-	* @return Template      itself to allow the chaining of calls
+	* @return array  the titleargs
 	* @access public
 	*/
-	public function setTitle(string $title) : Template {
+	public function getTitleArgs() : array {
+		return $this->titleArgs;
+	}
+	
+	/**
+	* setter for the name of the template
+	*
+	* @param string $title     the new name of the template
+	* @param array $titleArgs  the titleargs if the title is not a string
+	* @return Template         itself to allow the chaining of calls
+	* @access public
+	*/
+	public function setTitle(string $title, array $titleArgs = array()) : Template {
 		$this->title = $title;
+		$this->titleArgs = $titleArgs;
 		return $this;
 	}
 	
@@ -70,24 +92,23 @@ class Template {
 	* @access public
 	*/
 	public function getParam(string $param) : mixed {
-		if(!$this->contains($param)) throw new Error("Parameter {$param} does not exist");
+		if(!$this->contains($param)) { throw new Exception("Parameter {$param} does not exist"); }
 		return $this->template["value"];
 	}
 	
 	/**
 	* generator for all parameters of a template
 	*
-	* @return Generator|mixed  yields every parameter of the template or the entire template, if the template is just a string
+	* @return Generator|mixed  yields every parameter of the template
+	*                          or the entire template, if the template is just a string
 	* @access public
 	*/
-	public function getParams() : Generator {
-		if(!is_array($this->template)) throw new Error("Parameter operations are not supported if template is a string");
+	public function getParams() : Generator|TemplateParameter {
+		if(!is_array($this->template)) { throw new Exception(self::TEMPLATE_UNSUPPORTED_OPERATION); }
 		if(is_array($this->template)) {
 			foreach($this->template as $template) {
-				yield $template["name"] => $template["value"];
+				yield $template;
 			}
-		} else {
-			yield $this->template;
 		}
 	}
 	
@@ -99,7 +120,7 @@ class Template {
 	* @access public
 	*/
 	public function contains(string $param) : bool {
-		if(!is_array($this->template)) throw new Error("Parameter operations are not supported if template is a string");
+		if(!is_array($this->template)) { throw new Exception(self::TEMPLATE_UNSUPPORTED_OPERATION); }
 		return isset($this->template[$param]);
 	}
 	
@@ -111,7 +132,7 @@ class Template {
 	* @access public
 	*/
 	public function strContains(string $needle) : bool {
-		if(!$this->isString()) throw new Error("string operations are not supported of template is not a string");
+		if(!$this->isString()) { throw new Exception(self::TEMPLATE_UNSUPPORTED_OPERATION); }
 		return str_contains($this->template, $needle);
 	}
 	
@@ -126,18 +147,38 @@ class Template {
 	}
 	
 	/**
+	* setter for if template is argument
+	*
+	* @param bool $isArg  true if the template is an argument, false otherwise
+	* @access public
+	*/
+	public function setIsArg(bool $isArg) : void {
+		$this->isArg = $isArg;
+	}
+	
+	/**
+	* check if template is argument
+	*
+	* @return bool  true if the template is an argument, false otherwise
+	* @access public
+	*/
+	public function isArg() : bool {
+		return $this->isArg;
+	}
+	
+	/**
 	* add a parameter and a value to the template. Will not change the template if the parameter already exists
 	*
 	* @param string $param  the name of the parameter to add
 	* @param string $value  the content of the value to add
+	* @param bool $isIndex  whether the parameter is an index
 	* @return Template      itself to allow the chaining of calls
 	* @access public
 	*/
-	public function addParam(string $param, mixed $value) : Template {
-		if(!is_array($this->template)) throw new Error("Parameter operations are not supported if template is a string");
-		if($this->contains($param)) return $this;
-		$this->template[trim($param)]["name"] = $param;
-		$this->template[trim($param)]["value"] = $value;
+	public function addParam(string $param, mixed $value, bool $isIndex = false) : Template {
+		if(!is_array($this->template)) { throw new Exception(self::TEMPLATE_UNSUPPORTED_OPERATION); }
+		if($this->contains($param)) { return $this; }
+		$this->template[trim($param)] = new TemplateParameter($param, $value, $isIndex);
 		return $this;
 	}
 	
@@ -149,21 +190,24 @@ class Template {
 	* @param string $before  the name of the param before which the new param should be added
 	* @param string $param   the name of the parameter to add
 	* @param string $value   the content of the value to add
+	* @param bool $isIndex   whether the parameter is an index
 	* @return Template       itself to allow the chaining of calls
 	* @access public
 	*/
-	public function addParamBefore(string $before, string $newParam, string $value) : Template {
-		if(!is_array($this->template)) throw new Error("Parameter operations are not supported if template is a string");
-		if(!$this->contains($before)) return $this->addParam($param, $value);
+	public function addParamBefore(string $before, string $newParam, string $value, bool $isIndex = false) : Template {
+		if(!is_array($this->template)) { throw new Exception(self::TEMPLATE_UNSUPPORTED_OPERATION); }
+		if(!$this->contains($before)) { return $this->addParam($param, $value); }
 		
 		$newTemplate = array();
 		
-		foreach($this->getParams() as $param => $paramValue) {
-			if(trim($param) === $before) {
-				$newTemplate[trim($newParam)] = array("name" => $newParam, "value" => $value);
-				$newTemplate[trim($param)] = array("name" => $param, "value" => $paramValue);
+		foreach($this->getParams() as $param) {
+			if(trim($param->getName()) === trim($before)) {
+				$newTemplate[trim($newParam)] = new TemplateParameter($newParam, $value, $isIndex);
+				$newTemplateParam = new TemplateParameter($param->getName(), $param->getValue(), $param->isIndex());
+				$newTemplate[trim($param->getName())] = $newTemplateParam;
 			} else {
-				$newTemplate[trim($param)] = array("name" => $param, "value" => $paramValue);
+				$newTemplateParam = new TemplateParameter($param->getName(), $param->getValue(), $param->isIndex());
+				$newTemplate[trim($param->getName())] = $newTemplateParam;
 			}
 		}
 		
@@ -180,23 +224,24 @@ class Template {
 	* @param string $after  the name of the param after which the new param should be added
 	* @param string $param  the name of the parameter to add
 	* @param string $value  the content of the value to add
+	* @param bool $isIndex  whether the parameter is an index
 	* @return Template      itself to allow the chaining of calls
 	* @access public
 	*/
-	public function addParamAfter(string $after, string $newParam, string $value) : Template {
-		if(!is_array($this->template)) throw new Error("Parameter operations are not supported if template is a string");
+	public function addParamAfter(string $after, string $newParam, string $value, bool $isIndex = false) : Template {
+		if(!is_array($this->template)) { throw new Exception(self::TEMPLATE_UNSUPPORTED_OPERATION); }
 		if(!$this->contains($after)) {
 			return $this->addParam($newParam, $value);
 		}
 		
 		$newTemplate = array();
 		
-		foreach($this->getParams() as $param => $paramValue) {
-			if(trim($param) === $after) {
-				$newTemplate[trim($param)] = array("name" => $param, "value" => $paramValue);
-				$newTemplate[trim($newParam)] = array("name" => $newParam, "value" => $value);
+		foreach($this->getParams() as $param) {
+			if(trim($param->getName()) === trim($after)) {
+				$newTemplate[trim($param)] = new TemplateParameter($param->getName(), $param->getValue(), $param->isIndex());
+				$newTemplate[trim($newParam)] = new TemplateParameter($newParam, $value, $isIndex);
 			} else {
-				$newTemplate[trim($param)] = array("name" => $param, "value" => $paramValue);
+				$newTemplate[trim($param)] = new TemplateParameter($param->getName(), $param->getValue(), $param->isIndex());
 			}
 		}
 		
@@ -213,13 +258,14 @@ class Template {
 	* @access public
 	*/
 	public function removeParam(string $param) : Template {
-		if(!is_array($this->template)) throw new Error("Parameter operations are not supported if template is a string");
+		if(!is_array($this->template)) { throw new Exception(self::TEMPLATE_UNSUPPORTED_OPERATION); }
 		unset($this->template[$param]);
 		return $this;
 	}
 	
 	/**
-	* rename a parameter in a template without changing it's value. If the parameter does not exists, the template will not be changed
+	* rename a parameter in a template without changing it's value
+	* if the parameter does not exists, the template will not be changed
 	*
 	* @param string $oldName  the old name of the parameter
 	* @param string $newName  the new name of the parameter
@@ -227,18 +273,18 @@ class Template {
 	* @access public
 	*/
 	public function renameParam(string $oldName, string $newName) : Template {
-		if(!is_array($this->template)) throw new Error("Parameter operations are not supported if template is a string");
+		if(!is_array($this->template)) { throw new Exception(self::TEMPLATE_UNSUPPORTED_OPERATION); }
 		if(!$this->contains($oldName)) {
 			return $this;
 		}
 		
 		$newTemplate = array();
 		
-		foreach($this->getParams() as $param => $paramValue) {
-			if(trim($param) === $oldName) {
-				$newTemplate[trim($newName)] = array("name" => $newName, "value" => $paramValue);
+		foreach($this->getParams() as $param) {
+			if(trim($param->getName()) === trim($oldName)) {
+				$newTemplate[trim($newName)] = new TemplateParameter($newName, $param->getValue());
 			} else {
-				$newTemplate[trim($param)] = array("name" => $param, "value" => $paramValue);
+				$newTemplate[trim($param)] = new TemplateParameter($param->getName(), $param->getValue());
 			}
 		}
 		
@@ -255,10 +301,9 @@ class Template {
 	* @return Template      itself to allow the chaining of calls
 	* @access public
 	*/
-	public function setParam(string $param, string $value) : Template {
-		if(!is_array($this->template)) throw new Error("Parameter operations are not supported if template is a string");
-		$this->template[trim($param)]["name"] = $param;
-		$this->template[trim($param)]["value"] = $value;
+	public function setParam(string $param, string $value, bool $isIndex) : Template {
+		if(!is_array($this->template)) { throw new Exception(self::TEMPLATE_UNSUPPORTED_OPERATION); }
+		$this->template[trim($param)] = new TemplateParameter($param, $value, $isIndex);
 		return $this;
 	}
 	
@@ -284,7 +329,7 @@ class Template {
 	* @access public
 	*/
 	public function strReplace(string $search, string $replace, int $limit = 0) : Template {
-		if(!$this->isString()) throw new Error("string operations are not supported of template is not a string");
+		if(!$this->isString()) { throw new Exception(self::TEMPLATE_UNSUPPORTED_OPERATION); }
 		$this->template = str_replace($search, $replace, $this->template, $limit);
 		return $this;
 	}
@@ -292,53 +337,34 @@ class Template {
 	/**
 	* rebuilds the template from the parameters
 	*
-	* @return string  the string representation of the template without opening and closing braces as well as the name of the template itself
+	* @return string  the string representation of the template
 	* @access public
 	*/
 	public function rebuild() : string {
 		if(is_array($this->template)) {
-			$s = "{{" . $this->getTitle();
+			$s = "{{" . ($this->isArg() ? "{" : "") . $this->getTitle();
 			foreach($this->template as $param) {
-				if(is_numeric($param["name"])) {
-					if($param["name"] === "1") {
+				if($param->isIndex()) {
+					if(is_array($param->getValue())) {
 						$s .= "|";
-						if(is_array($param["value"])) {
-							foreach($param["value"] as $subTemplate) {
-								$s .= $subTemplate->rebuild();
-							}
-						} else {
-							$s .= $param["value"];
-						}
-					} else {
-						for($i = 2; $i <= trim($param["name"]); $i++) {
-							if(!isset($this->template[$i])) {
-								$s .= "|" . $param["name"] . "=";
-								break;
-							} else if($i == trim($param["name"])) {
-								$s .= "|";
-							}
-						}
-						
-						if(is_array($param["value"])) {
-							foreach($param["value"] as $subTemplate) {
-								$s .= $subTemplate->rebuild();
-							}
-						} else {
-							$s .= $param["value"];
-						}
-					}
-				} else {
-					if(is_array($param["value"])) {
-						$s .= "|" . $param["name"] . "=";
-						foreach($param["value"] as $subTemplate) {
+						foreach($param->getValue() as $subTemplate) {
 							$s .= $subTemplate->rebuild();
 						}
 					} else {
-						$s .= "|" . $param["name"] . "=" . $param["value"];
+						$s .= "|" . $param->getValue();
+					}
+				} else {
+					if(is_array($param->getValue())) {
+						$s .= "|" . $param->getName() . "=";
+						foreach($param->getValue() as $subTemplate) {
+							$s .= $subTemplate->rebuild();
+						}
+					} else {
+						$s .= "|" . $param->getName() . "=" . $param->getValue();
 					}
 				}
 			}
-			return $s . "}}";
+			return $s . ($this->isArg() ? "}" : "") . "}}";
 		} else {
 			return $this->template;
 		}
@@ -352,17 +378,31 @@ class Template {
 	* @access public
 	*/
 	public function rebuildParam(string $param) : string {
-		if(!$this->contains($param)) throw new Error("Parameter {$param} does not exist");
+		if(!$this->contains($param)) { throw new Exception("Parameter {$param} does not exist"); }
 		
-		if(is_array($this->template[$param]["value"])) {
+		if(is_array($this->template[$param]->getValue())) {
 			$s = "";
-			foreach($this->template[$param]["value"] as $subTemplate) {
+			foreach($this->template[$param]->getValue() as $subTemplate) {
 				$s .= $subTemplate->rebuild();
 			}
 			return $s;
 		} else {
-			return $this->template[$param]["value"];
+			return $this->template[$param]->getValue();
 		}
 	}
+	
+	/**
+	* debug function
+	*
+	* @return array  debug info about this object
+	* @access public
+	*/
+	public function __debugInfo() : array {
+		$info = array();
+		if(isset($this->title)) { $info["title"] = $this->title; }
+		if(!empty($this->titleArgs)) { $info["titleArgs"] = $this->titleArgs; }
+		if(isset($this->template)) { $info["template"] = $this->template; }
+		if(isset($this->isArg)) { $info["isArg"] = $this->isArg; }
+		return $info;
+	}
 }
-?>

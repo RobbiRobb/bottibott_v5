@@ -7,12 +7,16 @@ function loadDirectory(String $directory, String $class) {
 	$dir = new DirectoryIterator($directory);
 	
 	foreach($dir as $item) {
-		if($item->isDot()) continue;
+		if($item->isDot()) { continue; }
 		
 		if($item->isDir()) {
 			loadDirectory($item->getRealPath(), $class);
-		} else if($item->isFile() && strtolower($item->getExtension()) === "php") {
-			if(str_replace("." . $item->getExtension(), "", $item->getFilename()) == strtolower($class)) require_once($item->getRealPath());
+		} elseif(
+			$item->isFile() &&
+			strtolower($item->getExtension()) === "php" &&
+			str_replace("." . $item->getExtension(), "", $item->getFilename()) == strtolower($class)
+		) {
+			require_once($item->getRealPath());
 		}
 	}
 }
@@ -24,4 +28,3 @@ function loadDirectory(String $directory, String $class) {
 spl_autoload_register(function($class) {
 	loadDirectory(__DIR__, $class);
 });
-?>

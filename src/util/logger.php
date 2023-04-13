@@ -8,22 +8,22 @@
 * @method bool isLogging()
 * @method void startLogging()
 * @method void stopLogging()
-* @method void logRequest(String $url, Array $get, Array $post)
+* @method void logRequest(string $url, array $get, array $post)
 * @method void logResponse(CurlHandle $res)
-* @method String formatTimestamp()
+* @method string formatTimestamp()
 */
 class Logger {
 	private bool $isLogging = false;
-	private ?String $logfile = null;
-	private $file = null;
+	private string $logfile;
+	private mixed $file;
 	
 	/**
 	* constructor for class Logger
 	*
-	* @param String $logfile  the name of the logfile that will be used for logging
+	* @param string $logfile  the name of the logfile that will be used for logging
 	* @access public
 	*/
-	public function __construct(String $logfile) {
+	public function __construct(string $logfile) {
 		$this->logfile = $logfile;
 	}
 	
@@ -34,15 +34,16 @@ class Logger {
 	* @access public
 	*/
 	public function __destruct() {
-		if($this->isLogging) $this->stopLogging();
+		if($this->isLogging) { $this->stopLogging(); }
 	}
 	
 	/**
 	* getter to check if Logger is actively logging requests
 	*
+	* @return bool  true if the logger is logging, false otherwise
 	* @access public
 	*/
-	public function isLogging() {
+	public function isLogging() : bool {
 		return $this->isLogging;
 	}
 	
@@ -51,9 +52,9 @@ class Logger {
 	*
 	* @access public
 	*/
-	public function startLogging() {
+	public function startLogging() : void {
 		$this->file = fopen($this->logfile, "a");
-		if($this->file === false) throw new Error("Could not set up Logger, file could not be opened.");
+		if($this->file === false) { throw new Exception("Could not set up Logger, file could not be opened."); }
 		$this->isLogging = true;
 	}
 	
@@ -62,21 +63,21 @@ class Logger {
 	*
 	* @access public
 	*/
-	public function stopLogging() {
-		if($this->file !== null) fclose($this->file);
+	public function stopLogging() : void {
+		if(isset($this->file)) { fclose($this->file); }
 		$this->isLogging = false;
 	}
 	
 	/**
 	* logs a request
 	*
-	* @param String $url  the url of the request
-	* @param Array $get   the get part of the request
-	* @param Array $post  the post part of the request
+	* @param string $url  the url of the request
+	* @param array $get   the get part of the request
+	* @param array $post  the post part of the request
 	* @access public
 	*/
-	public function logRequest(String $url, Array $get, Array $post) {
-		if(!$this->isLogging()) return;
+	public function logRequest(string $url, array $get, array $post) : void {
+		if(!$this->isLogging()) { return; }
 		fwrite($this->file, "[" . $this->formatTimestamp() . "][REQUEST]");
 		fwrite($this->file, "\tRequesting " . $url . "?" . http_build_query($get));
 		fwrite($this->file, " with body size of " . strlen(implode("", array_keys($post))) + strlen(implode("", array_values($post))));
@@ -89,8 +90,8 @@ class Logger {
 	* @param CurlHandle $res  the response of an executed curl request
 	* @access public
 	*/
-	public function logResponse(CurlHandle &$res) {
-		if(!$this->isLogging()) return;
+	public function logResponse(CurlHandle &$res) : void {
+		if(!$this->isLogging()) { return; }
 		fwrite($this->file, "[" . $this->formatTimestamp() . "][RESPONSE]");
 		fwrite($this->file, "\tResponse: " . curl_getinfo($res, CURLINFO_RESPONSE_CODE));
 		fwrite($this->file, "\tLoaded " . curl_getinfo($res, CURLINFO_CONTENT_LENGTH_DOWNLOAD) . " bytes");
@@ -101,10 +102,10 @@ class Logger {
 	/**
 	* formats a timestamp for logging
 	*
+	* @return string  the formatted date
 	* @access private
 	*/
-	private function formatTimestamp() {
+	private function formatTimestamp() : string {
 		return date_format(new DateTime(), "c");
 	}
 }
-?>
