@@ -93,7 +93,7 @@ class Template {
 	*/
 	public function getParam(string $param) : mixed {
 		if(!$this->contains($param)) { throw new Exception("Parameter {$param} does not exist"); }
-		return $this->template["value"];
+		return $this->template[$param]->getValue();
 	}
 	
 	/**

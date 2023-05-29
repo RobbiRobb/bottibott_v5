@@ -108,6 +108,7 @@ class UploadRequest extends Request {
 		if(!isset($this->filepath) && !isset($this->fileurl)) { throw new Error("Either filepath or fileurl has to be set"); }
 		$request = new APIRequest($this->url);
 		$request->setCookieFile($this->cookiefile);
+		$request->setLogger($this->logger);
 		$request->addToGetFields("action", "upload");
 		$request->addToGetFields("format", "xml");
 		// only set file if filepath is set

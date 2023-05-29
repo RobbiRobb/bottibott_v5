@@ -97,6 +97,7 @@ class Edit {
 	* @access public
 	*/
 	public function execute() : Revision {
+		if(!isset($this->content) && !isset($this->revision)) { throw new Error("Can not edit without setting content or revision"); }
 		$request = new EditRequest(
 			$this->bot->getUrl(),
 			$this->page,
@@ -121,6 +122,7 @@ class Edit {
 	* @access public
 	*/
 	public function &getRequest() : CurlHandle {
+		if(!isset($this->content) && !isset($this->revision)) { throw new Error("Can not edit without setting content or revision"); }
 		$request = new EditRequest(
 			$this->bot->getUrl(),
 			$this->page,

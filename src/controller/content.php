@@ -50,7 +50,7 @@ class Content {
 					$page->setExists(false);
 					return $page;
 				}
-				$page->setContent((string)$request->revisions->rev->slots->slot);
+				$page->setContent((string)$pageContent->revisions->rev->slots->slot);
 				return $page;
 			}
 		} else {
