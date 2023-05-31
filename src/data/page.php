@@ -12,13 +12,17 @@
 * @method bool inCategory(string $category)
 * @method void setExists(bool $exists)
 * @method bool exists()
+* @method void setIsRedirect(bool $isRedirect)
+* @method bool isRedirect()
+* @method void setRedirectsTo(string $redirectsTo)
+* @method string redirectsTo()
 * @method void addLink(Page $link)
 * @method Generator|Page getLinks()
 * @method void addLangLink(string $lang, string $link)
 * @method string getLangLink(string $lang)
 * @method Generator|string getLangLinks()
 * @method void addRevision(Revision $revision)
-* @methd Generator|Revision getRevisions()
+* @method Generator|Revision getRevisions()
 * @method void setExpandedText(string $text)
 * @method string getExpandedText()
 * @method void setContent(string $content)
@@ -32,6 +36,8 @@ class Page {
 	private readonly int $id;
 	private readonly int $namespace;
 	private readonly bool $exists;
+	private readonly bool $isRedirect;
+	private readonly string $redirectsTo;
 	private string $content;
 	private array $categories;
 	private array $langlinks;
@@ -165,6 +171,48 @@ class Page {
 	*/
 	public function exists() : bool {
 		return isset($this->title) && isset($this->exists) && $this->exists || !isset($this->exists);
+	}
+	
+	/**
+	* setter for if the page is a redirect
+	*
+	* @param bool $isRedirect  true if the page is a redirect, false otherwise
+	* @access public
+	*/
+	public function setIsRedirect(bool $isRedirect) : void {
+		$this->isRedirect = $isRedirect;
+	}
+	
+	/**
+	* check if the page is a redirect
+	*
+	* @return bool  true if the page is a redirect, false otherwise
+	* @access public
+	*/
+	public function isRedirect() : bool {
+		if(!isset($this->isRedirect)) { throw new Exception("Redirect destination is not set"); }
+		return $this->isRedirect;
+	}
+	
+	/**
+	* setter for the destination of the redirect
+	*
+	* @param string $redirectsTo  the destination of the redirect
+	* @access public
+	*/
+	public function setRedirectsTo(string $redirectsTo) : void {
+		$this->redirectsTo = $redirectsTo;
+	}
+	
+	/**
+	* getter for the redirect destination
+	*
+	* @return string  the destination of the redirect if set
+	* @access public
+	*/
+	public function redirectsTo() : string {
+		if(!isset($this->redirectsTo)) { throw new Exception("Redirect destination is not set"); }
+		return $this->redirectsTo;
 	}
 	
 	/**
@@ -356,6 +404,8 @@ class Page {
 		if(isset($this->namespace)) { $info["namespace"] = $this->namespace; }
 		if(isset($this->categories)) { $info["categories"] = $this->categories; }
 		if(isset($this->exists)) { $info["exists"] = $this->exists; }
+		if(isset($this->isRedirect)) { $info["isRedirect"] = $this->isRedirect; }
+		if(isset($this->redirectsTo)) { $info["redirectsTo"] = $this->redirectsTo; }
 		if(isset($this->langlinks)) { $info["langlinks"] = $this->langlinks; }
 		if(isset($this->revisions)) { $info["revisions"] = $this->revisions; }
 		if(isset($this->expandedText)) { $info["expandedText"] = $this->expandedText; }

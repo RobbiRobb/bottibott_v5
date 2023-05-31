@@ -9,6 +9,7 @@
 class UserList {
 	private Bot $bot;
 	private string $limit;
+	private bool $active;
 	
 	/**
 	* constructor for class UserList

@@ -22,7 +22,7 @@ class RevisionsRequest extends Request {
 	/**
 	* constructor for class RevisionsRequest
 	*
-	* @param string $url     the url to the wiki
+	* @param string $url  the url to the wiki
 	* @access public
 	*/
 	public function __construct(string $url) {
