@@ -110,17 +110,19 @@ class Revisions {
 		
 		ksort($revisions);
 		
-		if(count($revisions) === 1 && $generator === false) {
-			foreach($revisions as $revision) {
-				return $revision;
-			}
-		} else {
-			return (function() use ($revisions) {
-				foreach($revisions as $revision) {
-					yield $revision;
-				}
-			})();
-		}
+		return $generator && count($revisions) == 1? $this->makeGenerator($revisions): reset($revisions);
+	}
+	
+	/**
+	* makes generator from revisions array
+	* always returns a generator from input array
+	*
+	* @param array $revisions the input array
+	* @return Generator from input array
+	* @access protected
+	*/
+	protected function makeGenerator(array $revisions) : Generator {
+	    yield from $revisions;
 	}
 	
 	/**
