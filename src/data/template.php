@@ -16,12 +16,12 @@
 * @method bool isString()
 * @method void setIsArg(bool $isArg)
 * @method bool isArg()
-* @method Template addParam(string $param, mixed $value)
+* @method Template addParam(string $param, mixed $value, bool $isIndex)
 * @method Template addParamBefore(string $before, string $newParam, string $value)
 * @method Template addParamAfter(string $after, string $newParam, string $value)
 * @method Template removeParam(string $param)
 * @method Template renameParam(string $oldName, string $newName)
-* @method Template setParam(string $param, string $value)
+* @method Template setParam(string $param, string $value, bool $isIndex)
 * @method Template setText(string $text)
 * @method Template strReplace(string $search, string $replace, int $limit)
 * @method string rebuild()
@@ -29,6 +29,7 @@
 */
 class Template {
 	private mixed $template;
+	private array $templateArguments;
 	private string $title;
 	private array $titleArgs;
 	private bool $isArg;
@@ -45,6 +46,7 @@ class Template {
 	*/
 	public function __construct(mixed $template = array(), string $title = "", array $titleArgs = array()) {
 		$this->template = $template;
+		$this->templateArguments = array();
 		$this->title = $title;
 		$this->titleArgs = $titleArgs;
 		$this->isArg = false;
@@ -92,8 +94,13 @@ class Template {
 	* @access public
 	*/
 	public function getParam(string $param) : mixed {
+		if(!is_array($this->template)) { throw new Exception(self::TEMPLATE_UNSUPPORTED_OPERATION); }
 		if(!$this->contains($param)) { throw new Exception("Parameter {$param} does not exist"); }
-		return $this->template[$param]->getValue();
+		foreach($this->template as $parameter) {
+			if(trim($parameter->getName()) === trim($param)) {
+				return $parameter;
+			}
+		}
 	}
 	
 	/**
@@ -105,10 +112,8 @@ class Template {
 	*/
 	public function getParams() : Generator|TemplateParameter {
 		if(!is_array($this->template)) { throw new Exception(self::TEMPLATE_UNSUPPORTED_OPERATION); }
-		if(is_array($this->template)) {
-			foreach($this->template as $template) {
-				yield $template;
-			}
+		foreach($this->template as $parameter) {
+			yield $parameter;
 		}
 	}
 	
@@ -121,7 +126,7 @@ class Template {
 	*/
 	public function contains(string $param) : bool {
 		if(!is_array($this->template)) { throw new Exception(self::TEMPLATE_UNSUPPORTED_OPERATION); }
-		return isset($this->template[$param]);
+		return isset($this->templateArguments[trim($param)]);
 	}
 	
 	/**
@@ -177,8 +182,8 @@ class Template {
 	*/
 	public function addParam(string $param, mixed $value, bool $isIndex = false) : Template {
 		if(!is_array($this->template)) { throw new Exception(self::TEMPLATE_UNSUPPORTED_OPERATION); }
-		if($this->contains($param)) { return $this; }
-		$this->template[trim($param)] = new TemplateParameter($param, $value, $isIndex);
+		array_push($this->template, new TemplateParameter($param, $value, $isIndex));
+		$this->templateArguments[trim($param)] = true;
 		return $this;
 	}
 	
@@ -202,17 +207,13 @@ class Template {
 		
 		foreach($this->getParams() as $param) {
 			if(trim($param->getName()) === trim($before)) {
-				$newTemplate[trim($newParam)] = new TemplateParameter($newParam, $value, $isIndex);
-				$newTemplateParam = new TemplateParameter($param->getName(), $param->getValue(), $param->isIndex());
-				$newTemplate[trim($param->getName())] = $newTemplateParam;
-			} else {
-				$newTemplateParam = new TemplateParameter($param->getName(), $param->getValue(), $param->isIndex());
-				$newTemplate[trim($param->getName())] = $newTemplateParam;
+				array_push($newTemplate, new TemplateParameter($newParam, $value, $isIndex));
 			}
+			array_push($newTemplate, $param);
 		}
 		
 		$this->template = $newTemplate;
-		
+		$this->templateArguments[trim($param)] = true;
 		return $this;
 	}
 	
@@ -237,16 +238,14 @@ class Template {
 		$newTemplate = array();
 		
 		foreach($this->getParams() as $param) {
+			array_push($newTemplate, $param);
 			if(trim($param->getName()) === trim($after)) {
-				$newTemplate[trim($param)] = new TemplateParameter($param->getName(), $param->getValue(), $param->isIndex());
-				$newTemplate[trim($newParam)] = new TemplateParameter($newParam, $value, $isIndex);
-			} else {
-				$newTemplate[trim($param)] = new TemplateParameter($param->getName(), $param->getValue(), $param->isIndex());
+				array_push($newTemplate, new TemplateParameter($newParam, $value, $param->isIndex()));
 			}
 		}
 		
 		$this->template = $newTemplate;
-		
+		$this->templateArguments[trim($newParam)] = true;
 		return $this;
 	}
 	
@@ -259,7 +258,18 @@ class Template {
 	*/
 	public function removeParam(string $param) : Template {
 		if(!is_array($this->template)) { throw new Exception(self::TEMPLATE_UNSUPPORTED_OPERATION); }
-		unset($this->template[$param]);
+		if(!$this->contains($param)) {
+			return $this;
+		}
+		
+		foreach($this->template as $key => $parameter) {
+			if(trim($parameter->getName()) === trim($param)) {
+				unset($this->template[$key]);
+			}
+		}
+		
+		$this->template = array_values($this->template);
+		unset($this->templateArguments[trim($param)]);
 		return $this;
 	}
 	
@@ -282,14 +292,15 @@ class Template {
 		
 		foreach($this->getParams() as $param) {
 			if(trim($param->getName()) === trim($oldName)) {
-				$newTemplate[trim($newName)] = new TemplateParameter($newName, $param->getValue());
+				array_push($newTemplate, new TemplateParameter($newName, $param->getValue()));
 			} else {
-				$newTemplate[trim($param)] = new TemplateParameter($param->getName(), $param->getValue());
+				array_push($newTemplate, $param);
 			}
 		}
 		
 		$this->template = $newTemplate;
-		
+		unset($this->templateArguments[trim($oldName)]);
+		$this->templateArguments[trim($newName)] = true;
 		return $this;
 	}
 	
@@ -303,7 +314,22 @@ class Template {
 	*/
 	public function setParam(string $param, string $value, bool $isIndex) : Template {
 		if(!is_array($this->template)) { throw new Exception(self::TEMPLATE_UNSUPPORTED_OPERATION); }
-		$this->template[trim($param)] = new TemplateParameter($param, $value, $isIndex);
+		
+		if($this->contains($param)) {
+			$newTemplate = array();
+		
+			foreach($this->getParams() as $parameter) {
+				if(trim($parameter->getName()) === trim($param)) {
+					array_push($newTemplate, new TemplateParameter($param, $value));
+				} else {
+					array_push($newTemplate, $parameter);
+				}
+			}
+			
+			$this->template = $newTemplate;
+		} else {
+			$this->addParam($param, $value, $isIndex);
+		}
 		return $this;
 	}
 	
@@ -343,7 +369,7 @@ class Template {
 	public function rebuild() : string {
 		if(is_array($this->template)) {
 			$s = "{{" . ($this->isArg() ? "{" : "") . $this->getTitle();
-			foreach($this->template as $param) {
+			foreach($this->getParams() as $param) {
 				if($param->isIndex()) {
 					if(is_array($param->getValue())) {
 						$s .= "|";
@@ -380,14 +406,14 @@ class Template {
 	public function rebuildParam(string $param) : string {
 		if(!$this->contains($param)) { throw new Exception("Parameter {$param} does not exist"); }
 		
-		if(is_array($this->template[$param]->getValue())) {
+		if(is_array($this->getParam($param)->getValue())) {
 			$s = "";
-			foreach($this->template[$param]->getValue() as $subTemplate) {
+			foreach($this->getParam($param)->getValue() as $subTemplate) {
 				$s .= $subTemplate->rebuild();
 			}
 			return $s;
 		} else {
-			return $this->template[$param]->getValue();
+			return $this->getParam($param)->getValue();
 		}
 	}
 	
@@ -402,6 +428,7 @@ class Template {
 		if(isset($this->title)) { $info["title"] = $this->title; }
 		if(!empty($this->titleArgs)) { $info["titleArgs"] = $this->titleArgs; }
 		if(isset($this->template)) { $info["template"] = $this->template; }
+		if(!empty($this->templateArguments)) { $info["templateArguments"] = $this->templateArguments; }
 		if(isset($this->isArg)) { $info["isArg"] = $this->isArg; }
 		return $info;
 	}

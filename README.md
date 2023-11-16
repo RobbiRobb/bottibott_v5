@@ -313,7 +313,7 @@ foreach($controller->getRights() as $right) {
 
 To get all rights for a user that is not the bot use the Userinfo controller.
 
-### Event controller
+### Event controllers
 
 #### Logevents
 The logevents controller provides a list of all events logged on a wiki. It only provides events for a specified action.
@@ -324,6 +324,19 @@ foreach($controller->getEvents() as $event) {
 	var_dump($event);
 }
 ```
+
+### Meta controllers
+
+#### Siteinfo
+The siteinfo controller loads meta data about the wiki.
+
+```php
+$controller = new Siteinfo($bot, ["namespaces"]);
+$siteinfo = $controller->execute();
+var_dump($siteinfo->getNamespaces());
+```
+
+Not all properties are supported, make sure to check the class when trying to query meta data about the wiki.
 
 ### Writing controllers
 

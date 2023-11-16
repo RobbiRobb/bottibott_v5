@@ -67,8 +67,8 @@ class Revisions {
 	public function getRevisionsFromRevids(bool $generator = false) : Generator|Revision {
 		if(!isset($this->ids)) { throw new Error("Cannot query revisions from ids without setting ids"); }
 		$max = $this->bot->hasRight("apihighlimits") ? 500 : 50;
+		$count = count($this->ids);
 		$requester = new APIMultiRequest();
-		$revisions = array();
 		
 		while(count($this->ids) > 0) {
 			$request = new RevisionsRequest($this->bot->getUrl());
@@ -78,49 +78,43 @@ class Revisions {
 			$requester->addRequest($request->getRequest());
 			$this->ids = array_splice($this->ids, $max);
 		}
-
-		foreach($requester->execute() as $queryResult) {
-			if(isset($queryResult->query->pages)) {
-				foreach($queryResult->query->pages->page as $page) {
-					$pageData = new Page((string)$page["title"]);
-					$pageData->setId((int)$page["pageid"]);
-					$pageData->setNamespace((int)$page["ns"]);
-					$pageData->setExists(true);
-					
-					foreach($page->revisions->rev as $revision) {
-						$revisionData = new Revision((int)$revision["revid"]);
-						$revisionData->setParentId((int)$revision["parentid"]);
-						$revisionData->setTimestamp(strtotime((string)$revision["timestamp"]));
-						$user = new User((string)$revision["user"], (int)$revision["userid"]);
-						$revisionData->setUser($user);
-						$revisionData->setPage($pageData);
+		
+		return (function() use (&$requester, $count, $generator) {
+			foreach($requester->execute() as $queryResult) {
+				if(isset($queryResult->query->pages)) {
+					foreach($queryResult->query->pages->page as $page) {
+						$pageData = new Page((string)$page["title"]);
+						$pageData->setId((int)$page["pageid"]);
+						$pageData->setNamespace((int)$page["ns"]);
+						$pageData->setExists(true);
 						
-						$revisions[(int)$revision["revid"]] = $revisionData;
+						foreach($page->revisions->rev as $revision) {
+							$revisionData = new Revision((int)$revision["revid"]);
+							$revisionData->setParentId((int)$revision["parentid"]);
+							$revisionData->setTimestamp(strtotime((string)$revision["timestamp"]));
+							$user = new User((string)$revision["user"], (int)$revision["userid"]);
+							$revisionData->setUser($user);
+							$revisionData->setPage($pageData);
+							
+							if($count === 1 && $generator === false) {
+								return $revisionData;
+							} else {
+								yield $revisionData;
+							}
+						}
+					}
+				}
+				if(isset($queryResult->query->badrevids)) {
+					foreach($queryResult->query->badrevids->rev as $revision) {
+						if($count === 1 && $generator === false) {
+							return new Revision((int)$revision["revid"], true);
+						} else {
+							yield new Revision((int)$revision["revid"], true);
+						}
 					}
 				}
 			}
-			if(isset($queryResult->query->badrevids)) {
-				foreach($queryResult->query->badrevids->rev as $revision) {
-					$revisionData = new Revision((int)$revision["revid"], true);
-					
-					$revisions[(int)$revision["revid"]] = $revisionData;
-				}
-			}
-		}
-		
-		ksort($revisions);
-		
-		if(count($revisions) === 1 && $generator === false) {
-			foreach($revisions as $revision) {
-				return $revision;
-			}
-		} else {
-			return (function() use ($revisions) {
-				foreach($revisions as $revision) {
-					yield $revision;
-				}
-			})();
-		}
+		})();
 	}
 	
 	/**
@@ -134,60 +128,56 @@ class Revisions {
 	*/
 	public function getRevisionsFromPages(bool $generator = false) : Generator|Page {
 		if(!isset($this->pages)) { throw new Error("Cannot query revisions from pages without setting pages"); }
+		$context = $this;
 		
-		$pages = array();
-		
-		foreach($this->pages as $page) {
-			$continue = "";
-			
-			do {
-				$request = new RevisionsRequest($this->bot->getUrl());
-				$request->setPage($page);
-				$request->setLimit(isset($this->limit) ? $this->limit : "max");
-				$request->setContinue($continue);
-				$request->setCookieFile($this->bot->getCookieFile());
-				$request->setLogger($this->bot->getLogger());
-				$queryResult = $request->execute();
+		return (function() use (&$context, $generator) {
+			foreach($context->pages as $page) {
+				$continue = "";
+				$pageData = null;
 				
-				$pageTitle = (string)$queryResult->query->pages->page["title"];
-				
-				if(!isset($pages[$pageTitle])) {
-					$pageData = new Page((string)$queryResult->query->pages->page["title"]);
-					if(isset($queryResult->query->pages->page["missing"])) {
-						$pageData->setExists(false);
-						$pages[$pageTitle] = $pageData;
-						break;
-					} else {
-						$pageData->setExists(true);
+				do {
+					$request = new RevisionsRequest($context->bot->getUrl());
+					$request->setPage($page);
+					$request->setLimit(isset($context->limit) ? $context->limit : "max");
+					$request->setContinue($continue);
+					$request->setCookieFile($context->bot->getCookieFile());
+					$request->setLogger($context->bot->getLogger());
+					$queryResult = $request->execute();
+					
+					$pageTitle = (string)$queryResult->query->pages->page["title"];
+					
+					if(is_null($pageData)) {
+						$pageData = new Page((string)$queryResult->query->pages->page["title"]);
+						if(isset($queryResult->query->pages->page["missing"])) {
+							$pageData->setExists(false);
+							break;
+						} else {
+							$pageData->setExists(true);
+						}
+						$pageData->setId((int)$queryResult->query->pages->page["pageid"]);
+						$pageData->setNamespace((int)$queryResult->query->pages->page["ns"]);
 					}
-					$pageData->setId((int)$queryResult->query->pages->page["pageid"]);
-					$pageData->setNamespace((int)$queryResult->query->pages->page["ns"]);
-					$pages[$pageTitle] = $pageData;
-				}
+					
+					foreach($queryResult->query->pages->page->revisions->rev as $revision) {
+						$revisionData = new Revision((int)$revision["revid"]);
+						$revisionData->setParentId((int)$revision["parentid"]);
+						$revisionData->setTimestamp(strtotime((string)$revision["timestamp"]));
+						$user = new User((string)$revision["user"], (int)$revision["userid"]);
+						$revisionData->setUser($user);
+						$pageData->addRevision($revisionData);
+					}
+					
+					$continue = (string)$queryResult->continue["rvcontinue"];
+				} while(isset($queryResult->continue["rvcontinue"]));
 				
-				foreach($queryResult->query->pages->page->revisions->rev as $revision) {
-					$revisionData = new Revision((int)$revision["revid"]);
-					$revisionData->setParentId((int)$revision["parentid"]);
-					$revisionData->setTimestamp(strtotime((string)$revision["timestamp"]));
-					$user = new User((string)$revision["user"], (int)$revision["userid"]);
-					$revisionData->setUser($user);
-					$pages[$pageTitle]->addRevision($revisionData);
+				if(count($context->pages) === 1 && $generator === false) {
+					return $pageData;
+				} else {
+					yield $pageData;
 				}
-				
-				$continue = (string)$queryResult->continue["rvcontinue"];
-			} while(isset($queryResult->continue["rvcontinue"]));
-		}
-		
-		if(count($pages) === 1 && $generator === false) {
-			foreach($pages as $page) {
-				return $page;
 			}
-		} else {
-			return (function() use ($pages) {
-				foreach($pages as $page) {
-					yield $page;
-				}
-			})();
-		}
+			
+			
+		})();
 	}
 }

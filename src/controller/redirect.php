@@ -59,13 +59,15 @@ class Redirect {
 		} while(!empty($this->titles));
 		
 		foreach($requester->execute() as $queryResult) {
-			foreach($queryResult->query->redirects->r as $redirect) {
-				$page = new Page((string)$redirect["from"]);
-				$page->setIsRedirect(true);
-				$page->setRedirectsTo((string)$redirect["to"]);
-				
-				unset($pageNames[array_keys($pageNames, (string)$redirect["from"])[0]]);
-				array_push($pages, $page);
+			if(isset($queryResult->query->redirects)) {
+				foreach($queryResult->query->redirects->r as $redirect) {
+					$page = new Page((string)$redirect["from"]);
+					$page->setIsRedirect(true);
+					$page->setRedirectsTo((string)$redirect["to"]);
+					
+					unset($pageNames[array_keys($pageNames, (string)$redirect["from"])[0]]);
+					array_push($pages, $page);
+				}
 			}
 		}
 		

@@ -9,8 +9,8 @@
 * @method void setPages(array|string $pages)
 * @method void setTitle(string $title)
 * @method void setContent(string $content)
-* @method Generator|Page expand(bool $generator)
-* @method Generator|Page expandFromNamespace(string $namespace, string $filter, string $limit)
+* @method Generator|Page expand()
+* @method Generator|Page expandFromNamespace(int $namespace, string $filter, string $limit)
 * @method Generator|Page expandFromBacklinks(string $link, string $limit)
 * @method Generator|Page expandFromCategorymembers(string $category, string $limit, array $types)
 * @method Generator|Page expandFromLinklist(string $link, string $limit)
@@ -71,15 +71,12 @@ class Parsetree {
 	/**
 	* executor for parsetree
 	*
-	* @param bool $generator  will always return a generator if set to true
-	* @return Generator|Page  a generator of all pages which were expanded,
-	*                         a page if only a single page was expanded or a page including expanded text
+	* @return Generator|Page  a generator of all pages which were expanded
 	* @access public
 	*/
-	public function expand(bool $generator = false) : Generator|Page {
+	public function expand() : Generator|Page {
 		if(isset($this->pages)) {
 			$requester = new APIMultiRequest();
-			$pages = array();
 			
 			foreach($this->pages as $page) {
 				$request = new ParsetreeRequest($this->bot->getUrl());
@@ -90,6 +87,10 @@ class Parsetree {
 			}
 			
 			foreach($requester->execute() as $queryResult) {
+				if(isset($queryResult->error)) {
+					throw new Exception((string)$queryResult->error["code"] . ": " . (string)$queryResult->error["info"]);
+				}
+				
 				$page = new Page((string)$queryResult->parse["title"]);
 				$page->setId((int)$queryResult->parse["pageid"]);
 				
@@ -97,19 +98,7 @@ class Parsetree {
 					$page->addTemplate($template);
 				}
 				
-				array_push($pages, $page);
-			}
-			
-			if(count($pages) === 1 && $generator === false) {
-				foreach($pages as $page) {
-					return $page;
-				}
-			} else {
-				return (function() use ($pages) {
-					foreach($pages as $page) {
-						yield $page;
-					}
-				})();
+				yield $page;
 			}
 		} elseif(isset($this->content)) {
 			$request = new ParsetreeRequest($this->bot->getUrl());
@@ -119,13 +108,17 @@ class Parsetree {
 			if(isset($this->title)) { $request->setTitle($this->title); }
 			$queryResult = $request->execute();
 			
+			if(isset($queryResult->error)) {
+				throw new Exception((string)$queryResult->error["code"] . ": " . (string)$queryResult->error["info"]);
+			}
+			
 			$page = new Page(isset($this->title) ? $this->title : "");
 			
 			foreach($this->parseTemplate($this->parseToTree((string)$queryResult->parse->parsetree)) as $template) {
 				$page->addTemplate($template);
 			}
 			
-			return $page;
+			yield $page;
 		} else {
 			throw new Error("Either pages or content must be set before expanding");
 		}
@@ -134,14 +127,14 @@ class Parsetree {
 	/**
 	* list generator for namespaces
 	*
-	* @param string $namespace  the namespace the pages belong to
+	* @param int $namespace     the namespace the pages belong to
 	* @param string $limit      the maximum amount of pages to query
 	* @param Strnig $filter     filter for the type of pages. Allowed values are "all", "redirects" and "nonredirects"
 	* @return Generator|Page    a generator for all pages linking to the page
 	* @access public
 	*/
 	public function expandFromNamespace(
-		string $namespace,
+		int $namespace,
 		string $filter = "nonredirects",
 		string $limit = "max"
 	) : Generator|Page {
@@ -149,7 +142,7 @@ class Parsetree {
 		$this->pages = array_map(function(Page $page) {
 			return $page->getTitle();
 		}, iterator_to_array($allpages->getAllPages(), false));
-		yield from $this->expand(true);
+		yield from $this->expand();
 	}
 	
 	/**
@@ -165,7 +158,7 @@ class Parsetree {
 		$this->pages = array_map(function(Page $page) {
 			return $page->getTitle();
 		}, iterator_to_array($backlinks->getAllBacklinks(), false));
-		yield from $this->expand(true);
+		yield from $this->expand();
 	}
 	
 	/**
@@ -187,7 +180,7 @@ class Parsetree {
 		$this->pages = array_map(function(Page $page) {
 			return $page->getTitle();
 		}, iterator_to_array($categorymembers->getMembers(), false));
-		yield from $this->expand(true);
+		yield from $this->expand();
 	}
 	
 	/**
@@ -217,7 +210,7 @@ class Parsetree {
 		$this->pages = array_map(function(Page $page) {
 			return $page->getTitle();
 		}, iterator_to_array($transclusions->getTransclusions(), false));
-		yield from $this->expand(true);
+		yield from $this->expand();
 	}
 	
 	/**
@@ -290,14 +283,23 @@ class Parsetree {
 						if($part->name === "name") {
 							if(isset($part->content)) {
 								$param = $part->content;
+								if(isset($part->children)) {
+									foreach($part->children as $subTemplate) {
+										foreach($this->parseTemplate($subTemplate) as $parsedSubTemplate) {
+											$param .= $parsedSubTemplate->rebuild();
+										}
+									}
+								}
 							} elseif(isset($part->attributes)) {
 								$param = $part->attributes["index"];
 								$index = true;
 							} else {
 								$param = "";
-								foreach($part->children as $subTemplate) {
-									foreach($this->parseTemplate($subTemplate) as $parsedSubTemplate) {
-										$param .= $parsedSubTemplate->rebuild();
+								if(isset($part->children)) {
+									foreach($part->children as $subTemplate) {
+										foreach($this->parseTemplate($subTemplate) as $parsedSubTemplate) {
+											$param .= $parsedSubTemplate->rebuild();
+										}
 									}
 								}
 							}
@@ -356,7 +358,11 @@ class Parsetree {
 						$text .= $parts->content;
 					}
 				} elseif($parts->name === "inner") {
-					$text .= ">" . $parts->content;
+					if(isset($parts->content)) {
+						$text .= ">" . $parts->content;
+					} else {
+						$text .= ">";
+					}
 				}
 			}
 			if(!str_contains($text, ">")) {

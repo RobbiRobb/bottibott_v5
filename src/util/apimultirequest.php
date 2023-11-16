@@ -60,8 +60,8 @@ class APIMultiRequest {
 	public function execute() : Generator|SimpleXMLElement {
 		if(empty($this->requests)) { return; }
 		do {
-			$requests = array_slice($this->requests, 0, 500);
-			$this->requests = array_splice($this->requests, 500);
+			$requests = array_slice($this->requests, 0, 50);
+			$this->requests = array_splice($this->requests, 50);
 			
 			$requestHandler = curl_multi_init();
 			
@@ -84,8 +84,11 @@ class APIMultiRequest {
 			
 			foreach($requests as $request) {
 				$return = @simplexml_load_string(curl_multi_getcontent($request));
-				if($return === false) {
-					$return = @simplexml_load_string(curl_exec(curl_copy_handle($request)));
+				while($return === false) {
+					$copy = curl_copy_handle($request);
+					$res = curl_exec($copy);
+					$return = @simplexml_load_string($res);
+					curl_close($copy);
 				}
 				yield $return;
 				curl_multi_remove_handle($requestHandler, $request);

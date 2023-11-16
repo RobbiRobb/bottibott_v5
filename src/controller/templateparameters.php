@@ -60,33 +60,45 @@ class TemplateParameters {
 		
 		$args = array();
 		
-		foreach($parsetree->expand()->getTemplates() as $template) {
-			$func = (function(Template $template) use (&$func, &$args) {
-				if($template->isArg()) { array_push($args, $template->getTitle()); }
-				if($template->isString()) {
-					preg_match_all("/\{\{\{([^\|\}\{]+)/", preg_replace(
-						"/<noinclude>(?<=\<noinclude\>)(.*?)(?=\<\/noinclude\>)<\/noinclude>/",
-						"",
-						$template->rebuild()
-					), $matches);
-					
-					$args = array_merge($args, array_unique($matches[1]));
-				} else {
-					foreach($template->getTitleArgs() as $arg) {
-						$func($arg);
-					}
-					foreach($template->getParams() as $param) {
-						if(is_array($param->getValue())) {
-							foreach($param->getValue() as $subTemplate) {
-								$func($subTemplate);
+		foreach($parsetree->expand() as $page) {
+			foreach($page->getTemplates() as $template) {
+				$func = (function(Template $template) use (&$func, &$args) {
+					if($template->isArg()) { array_push($args, $template->getTitle()); }
+					if($template->isString()) {
+						preg_match_all("/\{\{\{([^\|\}\{]+)/", preg_replace(
+							"/<noinclude>(?<=\<noinclude\>)(.*?)(?=\<\/noinclude\>)<\/noinclude>/",
+							"",
+							$template->rebuild()
+						), $matches);
+						
+						$args = array_merge($args, array_unique($matches[1]));
+					} else {
+						foreach($template->getTitleArgs() as $arg) {
+							$func($arg);
+						}
+						foreach($template->getParams() as $param) {
+							preg_match_all("/\{\{\{([^\|\}\{]+)/", preg_replace(
+								"/<noinclude>(?<=\<noinclude\>)(.*?)(?=\<\/noinclude\>)<\/noinclude>/",
+								"",
+								$param->getName()
+							), $matches);
+							$args = array_merge($args, array_unique($matches[1]));
+							
+							if(is_array($param->getValue())) {
+								foreach($param->getValue() as $subTemplate) {
+									$func($subTemplate);
+								}
 							}
 						}
 					}
-				}
-			});
-			
-			$func($template);
+				});
+				
+				$func($template);
+			}
 		}
+		array_walk($args, function(&$arg) {
+			$arg = str_replace("<noinclude>", "", $arg);
+		});
 		$args = array_unique($args);
 		asort($args);
 		

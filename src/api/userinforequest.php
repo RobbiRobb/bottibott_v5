@@ -1,11 +1,11 @@
 <?php
 /**
-* A class representing API-requests for editcounts
+* A class representing API-requests for info about users
 *
 * The class UserinfoRequest allows the creation of API-requests for information on the user
 *
-* @method void setUsers(string $users)
 * @method SimpleXMLElement execute()
+* @method CurlHandle getRequest()
 */
 class UserinfoRequest extends Request {
 	private string $users;

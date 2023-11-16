@@ -1,8 +1,8 @@
 <?php
 /**
-* A class for representing the content of pages
+* A class for representing the URL of files
 *
-* The class Content represents the content of one or multiple pages
+* The class Fileurl represents the URL of one or multiple files
 *
 * @method Generator|File getUrl(bool $generator)
 * @method CurlHandle getRequest(string $files)

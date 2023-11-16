@@ -136,7 +136,7 @@ class ParseRequest extends Request {
 		if(isset($this->title)) { $request->addToGetFields("title", $this->title); }
 		// only set text if is set
 		if(isset($this->text)) { $request->addToPostFields("text", $this->text); }
-		$request->addToGetFields("prop", $prop);
+		$request->addToGetFields("prop", $this->prop);
 		$request->addToGetFields("disablelimitreport", "1");
 		$request->addToGetFields("disableeditsection", "1");
 		$request->addToGetFields("disabletoc", "1");

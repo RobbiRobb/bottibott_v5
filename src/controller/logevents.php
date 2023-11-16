@@ -60,7 +60,11 @@ class Logevents {
 			$queryResult = $logevents->execute();
 			
 			foreach($queryResult->query->logevents->item as $item) {
-				$event = new Event((string)$item["type"], (string)$item["action"], (string)$item["type"]);
+				$event = new Event(
+					(string)$item["type"],
+					(string)$item["action"],
+					(isset($item["title"]) ? (string)$item["title"] : (string)$item["type"])
+				);
 				$event->setNamespace((int)$item["ns"]);
 				$event->setTimestamp(strtotime((string)$item["timestamp"]));
 				$user = new User((string)$item["user"], (int)$item["userid"]);

@@ -10,7 +10,7 @@ class Links {
 	private Bot $bot;
 	private array $titles;
 	private array $targets;
-	private int $namespace;
+	private string $namespace;
 	private string $limit;
 	private string $continue;
 	
@@ -20,7 +20,7 @@ class Links {
 	* @param Bot $bot               a reference to the bot object
 	* @param string|array $titles   a string or array of pages. Multiple pages as a string must be divided by "|"
 	* @param string|array $targets  a string or array of pages. Multiple pages as a string must be divided by "|"
-	* @param int $namespace         the namespace to limit links to
+	* @param string $namespace      the namespace to limit links to
 	* @param string $limit          the maximum amount of pages to query
 	* @param string $continue       value for additional queries
 	* @access public
@@ -29,7 +29,7 @@ class Links {
 		Bot &$bot,
 		array|string $titles,
 		array|string $targets = "",
-		int $namespace = "*",
+		string $namespace = "*",
 		string $limit = "max",
 		string $continue = ""
 	) {
