@@ -8,6 +8,7 @@
 * @method SiteinfoData execute()
 */
 class Siteinfo {
+	private Bot $bot;
 	private array $properties = [];
 	
 	private static array $allowedProperties = [

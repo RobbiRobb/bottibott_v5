@@ -112,7 +112,7 @@ class Edit {
 		if(isset($this->revision)) { $request->setRevision($this->revision); }
 		$queryResult = $request->execute();
 		
-		return $this->parseResult($queryResult);
+		return self::parseResult($queryResult);
 	}
 	
 	/**
@@ -147,7 +147,7 @@ class Edit {
 	* @return Revision                      the revision representing the edit result
 	* @access public
 	*/
-	public function parseResult(SimpleXMLElement $queryResult) : Revision {
+	public static function parseResult(SimpleXMLElement $queryResult) : Revision {
 		if(!isset($queryResult->edit["result"]) || (string)$queryResult->edit["result"] !== "Success") {
 			throw new Exception("Error on edit");
 		}
