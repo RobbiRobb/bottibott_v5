@@ -8,6 +8,7 @@
 * @method Generator|Page fromNamespace(int $namespace, string $filter, string $limit)
 * @method Generator|Page fromBacklinks(string $link, string $limit)
 * @method Generator|Page fromCategorymembers(string $category, string $limit, array $types)
+* @method Generator|Page fromFileusage(string $filename, string $namespace, string $limit)
 * @method Generator|Page fromLinklist(string $link, string $limit)
 * @method Generator|Page fromTransclusions(string $link, string $limit)
 */
@@ -137,7 +138,7 @@ class Content {
 	* @param string $limit     the maximum amount of pages to query
 	* @param array $types      an array containing the types of the query
 	*                          may contain any but at least one of "page", "subcat" or "file"
-	* @return Generator|Page   a generator for all pages transcluded on or linking to the page
+	* @return Generator|Page   a generator for all pages in the given category
 	* @access public
 	*/
 	public function fromCategorymembers(
@@ -153,8 +154,25 @@ class Content {
 	}
 	
 	/**
+	* list generator for all pages including a file
+	*
+	* @param string $filename   the name of the included file
+	* @param string $namespace  the namespace to filter for
+	* @param string $limit      the maximum amount of pages to query
+	* @return Generator|Page    a generator for all pages including the given file
+	* @access public
+	*/
+	public function fromFileusage(string $filename, string $namespace = "", string $limit = "max") : Generator|Page {
+		$fileusage = new Fileusage($this->bot, $filename, $namespace, $limit);
+		foreach($fileusage->getUsage()->getUsage() as $usage) {
+			array_push($this->pages, $usage->getTitle());
+		}
+		yield from $this->get(true);
+	}
+	
+	/**
 	* list generator for an entire linklist
-	* this includes both backlinks and transclusions
+	* this includes backlinks, transclusions and fileusages
 	*
 	* @param string $link     the linked page
 	* @param string $limit    the maximum amount of pages to query
@@ -164,6 +182,7 @@ class Content {
 	public function fromLinklist(string $link, string $limit = "max") : Generator|Page {
 		yield from $this->fromBacklinks($link, $limit);
 		yield from $this->fromTransclusions($link, $limit);
+		yield from $this->fromFileusage($link, limit: $limit);
 	}
 	
 	/**

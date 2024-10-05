@@ -66,11 +66,12 @@ class Fileusage {
 						if(isset($page["missing"])) {
 							$file->setExists(false);
 							$fileTransclusions[(string)$page["title"]] = $file;
-							continue;
 						}
-						$file->setId((int)$page["pageid"]);
-						$file->setNamespace((int)$page["ns"]);
-						$fileTransclusions[(string)$page["title"]] = $file;
+						if(!isset($page["missing"])) {
+							$file->setId((int)$page["pageid"]);
+							$file->setNamespace((int)$page["ns"]);
+							$fileTransclusions[(string)$page["title"]] = $file;
+						}
 					}
 					if(isset($page->fileusage)) {
 						foreach($page->fileusage->fu as $fileusage) {

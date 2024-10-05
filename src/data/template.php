@@ -9,7 +9,7 @@
 * @method string getTitle()
 * @method array getTitleArgs()
 * @method void setTitle(string $title)
-* @method string getParam(string $param)
+* @method mixed getParam(string $param)
 * @method Generator|mixed getParams()
 * @method bool contains(string $param)
 * @method bool strContains(string $needle)
@@ -26,6 +26,7 @@
 * @method Template strReplace(string $search, string $replace, int $limit)
 * @method string rebuild()
 * @method string rebuildParam(string $param)
+* @method bool containsAllPreviusIndices(int $index)
 */
 class Template {
 	private mixed $template;
@@ -240,7 +241,7 @@ class Template {
 		foreach($this->getParams() as $param) {
 			array_push($newTemplate, $param);
 			if(trim($param->getName()) === trim($after)) {
-				array_push($newTemplate, new TemplateParameter($newParam, $value, $param->isIndex()));
+				array_push($newTemplate, new TemplateParameter($newParam, $value, $isIndex));
 			}
 		}
 		
@@ -292,7 +293,7 @@ class Template {
 		
 		foreach($this->getParams() as $param) {
 			if(trim($param->getName()) === trim($oldName)) {
-				array_push($newTemplate, new TemplateParameter($newName, $param->getValue()));
+				array_push($newTemplate, new TemplateParameter($newName, $param->getValue(), $param->isIndex()));
 			} else {
 				array_push($newTemplate, $param);
 			}
@@ -309,10 +310,11 @@ class Template {
 	*
 	* @param string $param  the name of the parameter to add
 	* @param string $value  the content of the value to add
+	* @param bool $isIndex  whether the parameter is an index
 	* @return Template      itself to allow the chaining of calls
 	* @access public
 	*/
-	public function setParam(string $param, string $value, bool $isIndex) : Template {
+	public function setParam(string $param, string $value, bool $isIndex = false) : Template {
 		if(!is_array($this->template)) { throw new Exception(self::TEMPLATE_UNSUPPORTED_OPERATION); }
 		
 		if($this->contains($param)) {
@@ -320,7 +322,7 @@ class Template {
 		
 			foreach($this->getParams() as $parameter) {
 				if(trim($parameter->getName()) === trim($param)) {
-					array_push($newTemplate, new TemplateParameter($param, $value));
+					array_push($newTemplate, new TemplateParameter($param, $value, $isIndex));
 				} else {
 					array_push($newTemplate, $parameter);
 				}
@@ -370,7 +372,7 @@ class Template {
 		if(is_array($this->template)) {
 			$s = "{{" . ($this->isArg() ? "{" : "") . $this->getTitle();
 			foreach($this->getParams() as $param) {
-				if($param->isIndex()) {
+				if($param->isIndex() && $this->containsAllPreviusIndices($param->getName())) {
 					if(is_array($param->getValue())) {
 						$s .= "|";
 						foreach($param->getValue() as $subTemplate) {
@@ -415,6 +417,22 @@ class Template {
 		} else {
 			return $this->getParam($param)->getValue();
 		}
+	}
+	
+	/**
+	* check if all previous indices are set to make sure numerical parameters don't get lost
+	*
+	* @param int $index  the index to check
+	* @return bool       true if all previous indices are set, false otherwise
+	* @access private
+	*/
+	private function containsAllPreviusIndices(int $index) {
+		for($i = $index - 1; $i > 0; $i--) {
+			if(!$this->contains((string)$i)) {
+				return false;
+			}
+		}
+	return true;
 	}
 	
 	/**

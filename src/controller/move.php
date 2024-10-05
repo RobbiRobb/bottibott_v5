@@ -7,6 +7,9 @@
 * @method void setReason(string $reason)
 * @method void setNoredirect(bool $noredirect)
 * @method void setMovetalk(bool $movetalk)
+* @method MoveResult execute()
+* @method CurlHandle getRequest()
+* @method MoveResult parseResult(SimpleXMLElement $queryResult)
 */
 class Move {
 	private Bot $bot;
@@ -91,7 +94,7 @@ class Move {
 		);
 		$request->setCookieFile($this->bot->getCookieFile());
 		$request->setLogger($this->bot->getLogger());
-		return $this->parseResult($request->execute());
+		return self::parseResult($request->execute());
 	}
 	
 	/**
@@ -124,7 +127,7 @@ class Move {
 	* @return MoveResult                    a moveresult object representing the result
 	* @access public
 	*/
-	public function parseResult(SimpleXMLElement $queryResult) : MoveResult {
+	public static function parseResult(SimpleXMLElement $queryResult) : MoveResult {
 		if(!isset($queryResult->move["from"])) { throw new Exception("Error on move"); }
 		
 		return new MoveResult(

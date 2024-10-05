@@ -77,9 +77,9 @@ class Delete {
 		if(!isset($queryResult->delete["reason"])) { throw new Exception("Error on delete"); }
 		
 		return new DeleteResult(
-			(string)$queryResult->delete["from"],
-			(string)$queryResult->delete["to"],
-			(string)$queryResult->delete["reason"]
+			(string)$queryResult->delete["title"],
+			(string)$queryResult->delete["reason"],
+			(int)$queryResult->delete["logid"]
 		);
 	}
 }

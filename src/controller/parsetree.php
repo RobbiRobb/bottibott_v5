@@ -157,7 +157,7 @@ class Parsetree {
 		$backlinks = new BacklinkList($this->bot, $link, $limit);
 		$this->pages = array_map(function(Page $page) {
 			return $page->getTitle();
-		}, iterator_to_array($backlinks->getAllBacklinks(), false));
+		}, iterator_to_array($backlinks->getBacklinks(), false));
 		yield from $this->expand();
 	}
 	
@@ -193,8 +193,8 @@ class Parsetree {
 	* @access public
 	*/
 	public function expandFromLinklist(string $link, string $limit = "max") : Generator|Page {
-		yield from $this->fromBacklinks($link, $limit);
-		yield from $this->fromTransclusions($link, $limit);
+		yield from $this->expandFromBacklinks($link, $limit);
+		yield from $this->expandFromTransclusions($link, $limit);
 	}
 	
 	/**
