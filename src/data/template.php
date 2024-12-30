@@ -183,6 +183,7 @@ class Template {
 	*/
 	public function addParam(string $param, mixed $value, bool $isIndex = false) : Template {
 		if(!is_array($this->template)) { throw new Exception(self::TEMPLATE_UNSUPPORTED_OPERATION); }
+		if($this->contains($param)) { return $this; }
 		array_push($this->template, new TemplateParameter($param, $value, $isIndex));
 		$this->templateArguments[trim($param)] = true;
 		return $this;
@@ -214,7 +215,7 @@ class Template {
 		}
 		
 		$this->template = $newTemplate;
-		$this->templateArguments[trim($param)] = true;
+		$this->templateArguments[trim($param->getName())] = true;
 		return $this;
 	}
 	
