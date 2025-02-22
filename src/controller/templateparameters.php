@@ -99,6 +99,20 @@ class TemplateParameters {
 		array_walk($args, function(&$arg) {
 			$arg = str_replace("<noinclude>", "", $arg);
 		});
+		
+		if(!isset($this->content)) {
+			$content = new Content($this->bot, $this->page);
+			$text = $content->get()->getContent();
+		} else {
+			$text = $this->content;
+		}
+		preg_match_all("/\{\{\{([^\|\}\{]+)/", preg_replace(
+			"/<noinclude>(?<=\<noinclude\>)(.*?)(?=\<\/noinclude\>)<\/noinclude>/",
+			"",
+			$text
+		), $matches);
+		
+		$args = array_merge($args, $matches[1]);
 		$args = array_unique($args);
 		asort($args);
 		
